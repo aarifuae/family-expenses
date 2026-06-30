@@ -6,7 +6,8 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const htmlPath = path.join(__dirname, 'family-expenses.html');
-const dataPath = path.join(__dirname, 'family-expenses-data.json');
+const dataDir = process.env.DATA_DIR || __dirname;
+const dataPath = path.join(dataDir, 'family-expenses-data.json');
 const port = Number(process.env.PORT || 3000);
 
 const users = [
@@ -19,13 +20,14 @@ const users = [
   { name: 'المها', role: 'عضو' }
 ];
 
-const defaultCategories = ['راتب', 'مديونية', 'بيت', 'أكل', 'مواصلات', 'مدرسة', 'صحة', 'ترفيه', 'أخرى'];
+const defaultCategories = ['مديونية', 'سداد مديونية', 'بيت', 'أكل', 'مواصلات', 'مدرسة', 'صحة', 'ترفيه', 'أخرى'];
 
 function defaultData() {
   return {
     passwords: Object.fromEntries(users.map((user) => [user.name, '1234'])),
     goals: Object.fromEntries(users.map((user) => [user.name, 0])),
     categories: [...defaultCategories],
+    debts: [],
     expenses: []
   };
 }
@@ -41,11 +43,12 @@ function normalizeData(data) {
     data.goals[user.name] = Number(data.goals[user.name] || 0);
   }
   data.expenses = Array.isArray(data.expenses) ? data.expenses : [];
+  data.debts = Array.isArray(data.debts) ? data.debts : [];
   data.categories = [...new Set([
     ...defaultCategories,
     ...(Array.isArray(data.categories) ? data.categories : []),
     ...data.expenses.map((expense) => expense.category).filter(Boolean)
-  ])];
+  ])].filter((category) => category !== 'راتب');
   delete data.password;
   return data;
 }
@@ -64,6 +67,7 @@ function readData() {
 }
 
 function writeData(data) {
+  fs.mkdirSync(dataDir, { recursive: true });
   fs.writeFileSync(dataPath, JSON.stringify(data, null, 2), 'utf8');
 }
 
@@ -86,6 +90,11 @@ function getUser(name) {
 function visibleExpenses(data, actor) {
   if (actor.admin) return data.expenses;
   return data.expenses.filter((expense) => expense.person === actor.name);
+}
+
+function visibleDebts(data, actor) {
+  if (actor.admin) return data.debts;
+  return data.debts.filter((debt) => debt.person === actor.name);
 }
 
 function authenticate(data, name, password) {
@@ -140,7 +149,7 @@ const server = http.createServer(async (req, res) => {
       const goals = actor.admin
         ? data.goals
         : { [actor.name]: data.goals[actor.name] || 0 };
-      return sendJson(res, 200, { expenses: visibleExpenses(data, actor), goals, categories: data.categories });
+      return sendJson(res, 200, { expenses: visibleExpenses(data, actor), debts: visibleDebts(data, actor), goals, categories: data.categories });
     }
 
     if (req.method === 'POST' && url.pathname === '/api/expenses') {
@@ -158,10 +167,11 @@ const server = http.createServer(async (req, res) => {
       const person = actor.admin ? expense.person : actor.name;
       if (!getUser(person)) return sendError(res, 400, 'الاسم غير صحيح.');
 
-      const category = String(expense.category || 'أخرى').trim().slice(0, 60) || 'أخرى';
-      if (!data.categories.includes(category)) data.categories.push(category);
-
-      const type = ['salary', 'expense', 'debt'].includes(expense.type) ? expense.type : 'expense';
+      const type = ['salary', 'expense', 'debt', 'debt_payment'].includes(expense.type) ? expense.type : 'expense';
+      const category = type === 'salary'
+        ? 'راتب'
+        : String(expense.category || 'أخرى').trim().slice(0, 60) || 'أخرى';
+      if (type !== 'salary' && !data.categories.includes(category)) data.categories.push(category);
 
       data.expenses.push({
         id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
@@ -176,7 +186,49 @@ const server = http.createServer(async (req, res) => {
       const goals = actor.admin
         ? data.goals
         : { [actor.name]: data.goals[actor.name] || 0 };
-      return sendJson(res, 200, { expenses: visibleExpenses(data, actor), goals, categories: data.categories });
+      return sendJson(res, 200, { expenses: visibleExpenses(data, actor), debts: visibleDebts(data, actor), goals, categories: data.categories });
+    }
+
+    if (req.method === 'PUT' && url.pathname.startsWith('/api/expenses/')) {
+      const id = decodeURIComponent(url.pathname.replace('/api/expenses/', ''));
+      const body = await readJson(req);
+      const data = readData();
+      const actor = authenticate(data, body.user, body.password);
+      if (!actor) return sendError(res, 401, 'غير مصرح.');
+
+      const current = data.expenses.find((item) => item.id === id);
+      if (!current) return sendError(res, 404, 'العملية غير موجودة.');
+      if (!actor.admin && current.person !== actor.name) return sendError(res, 403, 'غير مسموح بالتعديل.');
+
+      const expense = body.expense || {};
+      const amount = Number(expense.amount);
+      if (!expense.date || !Number.isFinite(amount) || amount <= 0) {
+        return sendError(res, 400, 'بيانات العملية غير مكتملة.');
+      }
+
+      const person = actor.admin ? expense.person : actor.name;
+      if (!getUser(person)) return sendError(res, 400, 'الاسم غير صحيح.');
+
+      const type = ['salary', 'expense', 'debt', 'debt_payment'].includes(expense.type) ? expense.type : 'expense';
+      const category = type === 'salary'
+        ? 'راتب'
+        : String(expense.category || 'أخرى').trim().slice(0, 60) || 'أخرى';
+      if (type !== 'salary' && !data.categories.includes(category)) data.categories.push(category);
+
+      data.expenses = data.expenses.map((item) => item.id === id ? {
+        id,
+        person,
+        type,
+        date: String(expense.date),
+        amount,
+        category,
+        note: String(expense.note || '').slice(0, 300)
+      } : item);
+      writeData(data);
+      const goals = actor.admin
+        ? data.goals
+        : { [actor.name]: data.goals[actor.name] || 0 };
+      return sendJson(res, 200, { expenses: visibleExpenses(data, actor), debts: visibleDebts(data, actor), goals, categories: data.categories });
     }
 
     if (req.method === 'DELETE' && url.pathname.startsWith('/api/expenses/')) {
@@ -188,14 +240,78 @@ const server = http.createServer(async (req, res) => {
 
       const expense = data.expenses.find((item) => item.id === id);
       if (!expense) return sendError(res, 404, 'المصروف غير موجود.');
-      if (!actor.admin) return sendError(res, 403, 'الأب فقط يستطيع الحذف.');
+      if (!actor.admin && expense.person !== actor.name) return sendError(res, 403, 'غير مسموح بالحذف.');
 
       data.expenses = data.expenses.filter((item) => item.id !== id);
       writeData(data);
       const goals = actor.admin
         ? data.goals
         : { [actor.name]: data.goals[actor.name] || 0 };
-      return sendJson(res, 200, { expenses: visibleExpenses(data, actor), goals, categories: data.categories });
+      return sendJson(res, 200, { expenses: visibleExpenses(data, actor), debts: visibleDebts(data, actor), goals, categories: data.categories });
+    }
+
+    if (req.method === 'POST' && url.pathname === '/api/debts') {
+      const body = await readJson(req);
+      const data = readData();
+      const actor = authenticate(data, body.user, body.password);
+      if (!actor) return sendError(res, 401, 'غير مصرح.');
+
+      const input = body.debt || {};
+      const person = actor.admin ? input.person : actor.name;
+      const principal = Number(input.principal);
+      const installment = Number(input.installment || 0);
+      const paid = Number(input.paid || 0);
+      const title = String(input.title || '').trim().slice(0, 80);
+      if (!getUser(person)) return sendError(res, 400, 'الاسم غير صحيح.');
+      if (!title || !Number.isFinite(principal) || principal <= 0) return sendError(res, 400, 'بيانات الدين غير مكتملة.');
+      if (!Number.isFinite(installment) || installment < 0 || !Number.isFinite(paid) || paid < 0) return sendError(res, 400, 'مبلغ الدين غير صحيح.');
+
+      data.debts.push({
+        id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        person,
+        kind: input.kind === 'sub' ? 'sub' : 'main',
+        title,
+        principal,
+        installment,
+        paid: Math.min(paid, principal),
+        postponed: 0
+      });
+      writeData(data);
+      return sendJson(res, 200, { debts: visibleDebts(data, actor) });
+    }
+
+    if (req.method === 'POST' && url.pathname.startsWith('/api/debts/') && (url.pathname.endsWith('/pay') || url.pathname.endsWith('/postpone'))) {
+      const parts = url.pathname.split('/');
+      const action = parts.pop();
+      const id = decodeURIComponent(parts.pop());
+      const body = await readJson(req);
+      const data = readData();
+      const actor = authenticate(data, body.user, body.password);
+      if (!actor) return sendError(res, 401, 'غير مصرح.');
+      const debt = data.debts.find((item) => item.id === id);
+      if (!debt) return sendError(res, 404, 'الدين غير موجود.');
+      if (!actor.admin && debt.person !== actor.name) return sendError(res, 403, 'غير مسموح.');
+      if (action === 'pay') {
+        debt.paid = Math.min(Number(debt.principal || 0), Number(debt.paid || 0) + Number(debt.installment || 0));
+      } else {
+        debt.postponed = Number(debt.postponed || 0) + 1;
+      }
+      writeData(data);
+      return sendJson(res, 200, { debts: visibleDebts(data, actor) });
+    }
+
+    if (req.method === 'DELETE' && url.pathname.startsWith('/api/debts/')) {
+      const id = decodeURIComponent(url.pathname.replace('/api/debts/', ''));
+      const body = await readJson(req);
+      const data = readData();
+      const actor = authenticate(data, body.user, body.password);
+      if (!actor) return sendError(res, 401, 'غير مصرح.');
+      const debt = data.debts.find((item) => item.id === id);
+      if (!debt) return sendError(res, 404, 'الدين غير موجود.');
+      if (!actor.admin && debt.person !== actor.name) return sendError(res, 403, 'غير مسموح.');
+      data.debts = data.debts.filter((item) => item.id !== id);
+      writeData(data);
+      return sendJson(res, 200, { debts: visibleDebts(data, actor) });
     }
 
     if (req.method === 'POST' && url.pathname === '/api/password') {
@@ -205,10 +321,11 @@ const server = http.createServer(async (req, res) => {
       if (!actor?.admin) return sendError(res, 403, 'الأب فقط يستطيع تغيير كلمة المرور.');
       const target = getUser(body.targetUser);
       if (!target) return sendError(res, 400, 'الاسم غير صحيح.');
-      if (!body.nextPassword || String(body.nextPassword).length < 4) {
+      const nextPassword = String(body.nextPassword || '').trim();
+      if (nextPassword.length < 4) {
         return sendError(res, 400, 'كلمة المرور قصيرة.');
       }
-      data.passwords[target.name] = String(body.nextPassword);
+      data.passwords[target.name] = nextPassword;
       writeData(data);
       return sendJson(res, 200, { ok: true });
     }
@@ -217,14 +334,18 @@ const server = http.createServer(async (req, res) => {
       const body = await readJson(req);
       const data = readData();
       const actor = authenticate(data, body.user, body.password);
-      if (!actor?.admin) return sendError(res, 403, 'الأب فقط يستطيع تغيير الأهداف.');
-      const target = getUser(body.targetUser);
+      if (!actor) return sendError(res, 401, 'غير مصرح.');
+      const requestedTarget = actor.admin ? body.targetUser : actor.name;
+      const target = getUser(requestedTarget);
       const amount = Number(body.amount);
       if (!target) return sendError(res, 400, 'الاسم غير صحيح.');
       if (!Number.isFinite(amount) || amount < 0) return sendError(res, 400, 'مبلغ الهدف غير صحيح.');
       data.goals[target.name] = amount;
       writeData(data);
-      return sendJson(res, 200, { goals: data.goals });
+      const goals = actor.admin
+        ? data.goals
+        : { [actor.name]: data.goals[actor.name] || 0 };
+      return sendJson(res, 200, { goals });
     }
 
     if (req.method === 'POST' && url.pathname === '/api/clear') {
@@ -233,8 +354,9 @@ const server = http.createServer(async (req, res) => {
       const actor = authenticate(data, body.user, body.password);
       if (!actor?.admin) return sendError(res, 403, 'الأب فقط يستطيع حذف البيانات.');
       data.expenses = [];
+      data.debts = [];
       writeData(data);
-      return sendJson(res, 200, { expenses: [] });
+      return sendJson(res, 200, { expenses: [], debts: [] });
     }
 
     sendError(res, 404, 'Not found');

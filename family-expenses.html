@@ -383,7 +383,9 @@
         <section class="grid" aria-label="ملخص المصاريف">
           <div class="stat"><span class="muted">إجمالي الرواتب</span><strong id="totalAll">0</strong></div>
           <div class="stat"><span class="muted">إجمالي المصاريف</span><strong id="totalSelected">0</strong></div>
-          <div class="stat"><span class="muted">إجمالي المديونية</span><strong id="totalDebt">0</strong></div>
+          <div class="stat"><span class="muted">كامل المديونية</span><strong id="totalDebt">0</strong></div>
+          <div class="stat"><span class="muted">المسدد من المديونية</span><strong id="paidDebt">0</strong></div>
+          <div class="stat"><span class="muted">الباقي من المديونية</span><strong id="remainingDebt">0</strong></div>
           <div class="stat"><span class="muted">الرصيد الحالي</span><strong id="balanceAmount">0</strong></div>
           <div class="stat"><span class="muted">الهدف</span><strong id="goalAmount">0</strong></div>
           <div class="stat"><span class="muted">الباقي للهدف</span><strong id="goalRemaining">0</strong></div>
@@ -391,7 +393,32 @@
 
         <section class="content-grid">
           <div class="panel">
-            <h2>إضافة راتب أو مصروف أو مديونية</h2>
+            <h2>إضافة راتب</h2>
+            <form id="salaryForm">
+              <div class="form-row">
+                <div class="field">
+                  <label for="salaryPerson">الاسم</label>
+                  <select id="salaryPerson"></select>
+                </div>
+                <div class="field">
+                  <label for="salaryDate">التاريخ</label>
+                  <input id="salaryDate" type="date" required>
+                </div>
+              </div>
+              <div class="field">
+                <label for="salaryAmount">مبلغ الراتب</label>
+                <input id="salaryAmount" type="number" min="0.01" step="0.01" required placeholder="0.00">
+              </div>
+              <div class="field">
+                <label for="salaryNote">ملاحظة</label>
+                <textarea id="salaryNote" rows="2" placeholder="مثال: راتب شهر يوليو"></textarea>
+              </div>
+              <button class="btn" type="submit" style="width:100%">حفظ الراتب</button>
+            </form>
+
+            <div class="settings"></div>
+
+            <h2>إضافة مصروف أو مديونية</h2>
             <form id="expenseForm">
               <div class="form-row">
                 <div class="field">
@@ -408,8 +435,8 @@
                   <label for="expenseType">نوع العملية</label>
                   <select id="expenseType">
                     <option value="expense">مصروف</option>
-                    <option value="salary">راتب</option>
                     <option value="debt">مديونية</option>
+                    <option value="debt_payment">سداد مديونية</option>
                   </select>
                 </div>
                 <div class="field">
@@ -421,8 +448,8 @@
                 <div class="field">
                   <label for="expenseCategory">التصنيف</label>
                   <select id="expenseCategory">
-                    <option>راتب</option>
                     <option>مديونية</option>
+                    <option>سداد مديونية</option>
                     <option>بيت</option>
                     <option>أكل</option>
                     <option>مواصلات</option>
@@ -455,20 +482,22 @@
                 <input id="newPassword" type="password" placeholder="كلمة مرور جديدة">
               </div>
               <button class="btn secondary" id="savePasswordBtn" type="button" style="width:100%">حفظ كلمة المرور</button>
-              <div class="settings">
-                <h3>أهداف الادخار</h3>
-                <div class="field">
-                  <label for="goalUser">اختيار الشخص</label>
-                  <select id="goalUser"></select>
-                </div>
-                <div class="field">
-                  <label for="goalAmountInput">مبلغ الهدف</label>
-                  <input id="goalAmountInput" type="number" min="0" step="0.01" placeholder="مثال: 20000">
-                </div>
-                <button class="btn secondary" id="saveGoalBtn" type="button" style="width:100%">حفظ الهدف</button>
-              </div>
               <button class="btn danger" id="clearBtn" type="button" style="width:100%; margin-top:8px">حذف كل البيانات</button>
               <div id="settingsNotice" class="notice"></div>
+            </div>
+
+            <div class="settings" id="goalPanel">
+              <h3>أهداف الادخار</h3>
+              <div class="field">
+                <label for="goalUser">اختيار الشخص</label>
+                <select id="goalUser"></select>
+              </div>
+              <div class="field">
+                <label for="goalAmountInput">مبلغ الهدف</label>
+                <input id="goalAmountInput" type="number" min="0" step="0.01" placeholder="مثال: 20000">
+              </div>
+              <button class="btn secondary" id="saveGoalBtn" type="button" style="width:100%">حفظ الهدف</button>
+              <div id="goalNotice" class="notice"></div>
             </div>
           </div>
 
@@ -509,6 +538,65 @@
             </div>
           </div>
         </section>
+
+        <section class="panel" style="margin-top:18px">
+          <h2>إدارة الديون</h2>
+          <form id="debtForm">
+            <div class="form-row">
+              <div class="field">
+                <label for="debtPerson">الاسم</label>
+                <select id="debtPerson"></select>
+              </div>
+              <div class="field">
+                <label for="debtKind">نوع الدين</label>
+                <select id="debtKind">
+                  <option value="main">دين رئيسي</option>
+                  <option value="sub">دين فرعي</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="field">
+                <label for="debtTitle">اسم الدين</label>
+                <input id="debtTitle" type="text" required placeholder="مثال: قرض البنك">
+              </div>
+              <div class="field">
+                <label for="debtPrincipal">كامل الدين</label>
+                <input id="debtPrincipal" type="number" min="0.01" step="0.01" required placeholder="مثال: 100000">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="field">
+                <label for="debtInstallment">القسط</label>
+                <input id="debtInstallment" type="number" min="0" step="0.01" placeholder="مثال: 5000">
+              </div>
+              <div class="field">
+                <label for="debtPaid">المسدد</label>
+                <input id="debtPaid" type="number" min="0" step="0.01" placeholder="0">
+              </div>
+            </div>
+            <button class="btn" type="submit" style="width:100%">حفظ الدين</button>
+          </form>
+          <div class="table-wrap" style="margin-top:14px; max-height:420px">
+            <table>
+              <thead>
+                <tr>
+                  <th>الاسم</th>
+                  <th>الدين</th>
+                  <th>النوع</th>
+                  <th>كامل الدين</th>
+                  <th>القسط</th>
+                  <th>المسدد</th>
+                  <th>الباقي</th>
+                  <th>تأجيل</th>
+                  <th>إجراء</th>
+                </tr>
+              </thead>
+              <tbody id="debtRows"></tbody>
+            </table>
+            <div class="empty" id="debtEmptyState">لا توجد ديون مسجلة بعد.</div>
+          </div>
+        </section>
       </main>
     </div>
   </section>
@@ -524,7 +612,7 @@
       { name: 'المها', role: 'عضو' }
     ];
 
-    const CATEGORIES = ['راتب', 'مديونية', 'بيت', 'أكل', 'مواصلات', 'مدرسة', 'صحة', 'ترفيه', 'أخرى'];
+    const CATEGORIES = ['مديونية', 'سداد مديونية', 'بيت', 'أكل', 'مواصلات', 'مدرسة', 'صحة', 'ترفيه', 'أخرى'];
     const STORAGE_KEY = 'family-expenses-v1';
     const GOALS_KEY = 'family-expenses-goals-v1';
     const CATEGORIES_KEY = 'family-expenses-categories-v1';
@@ -537,8 +625,10 @@
       currentUser: null,
       selectedPerson: 'all',
       expenses: [],
+      debts: [],
       goals: {},
       categories: [...CATEGORIES],
+      editingId: null,
       authPassword: ''
     };
 
@@ -582,6 +672,7 @@
     function saveExpenses() {
       if (!SERVER_MODE) {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state.expenses));
+        localStorage.setItem('family-expenses-debts-v1', JSON.stringify(state.debts));
         localStorage.setItem(GOALS_KEY, JSON.stringify(state.goals));
         localStorage.setItem(CATEGORIES_KEY, JSON.stringify(state.categories));
       }
@@ -595,23 +686,27 @@
         });
         const payload = await apiRequest(`/api/expenses?${query.toString()}`);
         state.expenses = payload.expenses || [];
+        state.debts = payload.debts || [];
         state.goals = payload.goals || {};
-        state.categories = payload.categories || state.categories;
+        state.categories = mergeCategories(payload.categories || state.categories);
         return;
       }
       try {
         state.expenses = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+        state.debts = JSON.parse(localStorage.getItem('family-expenses-debts-v1') || '[]');
         state.goals = JSON.parse(localStorage.getItem(GOALS_KEY) || '{}');
         state.categories = mergeCategories(JSON.parse(localStorage.getItem(CATEGORIES_KEY) || '[]'));
       } catch {
         state.expenses = [];
+        state.debts = [];
         state.goals = {};
         state.categories = [...CATEGORIES];
       }
     }
 
     function mergeCategories(extra = []) {
-      return [...new Set([...CATEGORIES, ...extra, ...state.expenses.map((item) => item.category).filter(Boolean)])];
+      return [...new Set([...CATEGORIES, ...extra, ...state.expenses.map((item) => item.category).filter(Boolean)])]
+        .filter((category) => category !== 'راتب');
     }
 
     function addCategory(category) {
@@ -634,7 +729,9 @@
 
     function initLists() {
       fillSelect(el('loginUser'), USERS);
+      fillSelect(el('salaryPerson'), USERS);
       fillSelect(el('expensePerson'), USERS);
+      fillSelect(el('debtPerson'), USERS);
       fillSelect(el('filterPerson'), USERS, 'كل الأسماء');
       fillSelect(el('passwordUser'), USERS);
       fillSelect(el('goalUser'), USERS);
@@ -647,12 +744,23 @@
       el('expenseCategory').innerHTML = '';
       el('filterCategory').innerHTML = '';
       el('filterCategory').add(new Option('كل التصنيفات', 'all'));
+      state.categories = mergeCategories(state.categories);
       state.categories.forEach((cat) => {
+        if (cat === 'راتب') return;
         el('expenseCategory').add(new Option(cat, cat));
         el('filterCategory').add(new Option(cat, cat));
       });
       if (state.categories.includes(selectedExpense)) el('expenseCategory').value = selectedExpense;
       if (selectedFilter === 'all' || state.categories.includes(selectedFilter)) el('filterCategory').value = selectedFilter;
+    }
+
+    function updateCategoryMode() {
+      const isSalary = el('expenseType').value === 'salary';
+      el('expenseCategory').disabled = isSalary;
+      el('customCategory').disabled = isSalary;
+      if (isSalary) {
+        el('customCategory').value = '';
+      }
     }
 
     function showNotice(node, text) {
@@ -668,6 +776,7 @@
       el('loginScreen').classList.remove('active');
       el('appScreen').classList.add('active');
       state.selectedPerson = state.currentUser.admin ? 'all' : state.currentUser.name;
+      el('salaryPerson').value = state.currentUser.admin ? 'الأب' : state.currentUser.name;
       el('expensePerson').value = state.currentUser.admin ? 'الأب' : state.currentUser.name;
       el('filterPerson').value = state.selectedPerson;
       await loadExpenses();
@@ -683,8 +792,8 @@
       el('loginScreen').classList.add('active');
     }
 
-    function canEdit() {
-      return state.currentUser.admin;
+    function canEdit(expense) {
+      return state.currentUser.admin || expense.person === state.currentUser.name;
     }
 
     function visibleExpenses() {
@@ -716,7 +825,10 @@
         const totalDebt = state.expenses
           .filter((expense) => expense.person === user.name && expense.type === 'debt')
           .reduce((sum, expense) => sum + Number(expense.amount), 0);
-        const total = totalSalary - totalExpense - totalDebt;
+        const paidDebt = state.expenses
+          .filter((expense) => expense.person === user.name && expense.type === 'debt_payment')
+          .reduce((sum, expense) => sum + Number(expense.amount), 0);
+        const total = totalSalary - totalExpense - Math.max(totalDebt - paidDebt, 0);
         const goal = Number(state.goals[user.name] || 0);
         const goalText = goal ? ` / هدف ${money(goal)}` : '';
         const button = document.createElement('button');
@@ -761,7 +873,21 @@
       const totalDebt = selected
         .filter((expense) => expense.type === 'debt')
         .reduce((sum, expense) => sum + Number(expense.amount), 0);
-      const balance = totalSalary - totalExpense - totalDebt;
+      const paidDebt = selected
+        .filter((expense) => expense.type === 'debt_payment')
+        .reduce((sum, expense) => sum + Number(expense.amount), 0);
+      const remainingDebt = Math.max(totalDebt - paidDebt, 0);
+      const selectedDebtAccounts = state.debts.filter((debt) => {
+        if (!state.currentUser.admin && debt.person !== state.currentUser.name) return false;
+        return state.selectedPerson === 'all' || debt.person === state.selectedPerson;
+      });
+      const accountDebtRemaining = selectedDebtAccounts.reduce((sum, debt) => sum + Math.max(Number(debt.principal || 0) - Number(debt.paid || 0), 0), 0);
+      const accountDebtTotal = selectedDebtAccounts.reduce((sum, debt) => sum + Number(debt.principal || 0), 0);
+      const accountDebtPaid = selectedDebtAccounts.reduce((sum, debt) => sum + Number(debt.paid || 0), 0);
+      const fullDebt = totalDebt + accountDebtTotal;
+      const fullPaidDebt = paidDebt + accountDebtPaid;
+      const fullRemainingDebt = remainingDebt + accountDebtRemaining;
+      const balance = totalSalary - totalExpense - fullRemainingDebt;
       const selectedPeople = state.selectedPerson === 'all'
         ? (state.currentUser.admin ? USERS : [state.currentUser])
         : USERS.filter((user) => user.name === state.selectedPerson);
@@ -769,7 +895,9 @@
       const goalRemaining = Math.max(goal - balance, 0);
       el('totalAll').textContent = money(totalSalary);
       el('totalSelected').textContent = money(totalExpense);
-      el('totalDebt').textContent = money(totalDebt);
+      el('totalDebt').textContent = money(fullDebt);
+      el('paidDebt').textContent = money(fullPaidDebt);
+      el('remainingDebt').textContent = money(fullRemainingDebt);
       el('balanceAmount').textContent = money(balance);
       el('goalAmount').textContent = money(goal);
       el('goalRemaining').textContent = money(goalRemaining);
@@ -782,15 +910,18 @@
       rows.forEach((expense) => {
         const tr = document.createElement('tr');
         const disabled = canEdit(expense) ? '' : 'disabled';
-        const type = expense.type === 'salary' ? 'راتب' : expense.type === 'debt' ? 'مديونية' : 'مصروف';
+        const type = expense.type === 'salary' ? 'راتب' : expense.type === 'debt' ? 'مديونية' : expense.type === 'debt_payment' ? 'سداد مديونية' : 'مصروف';
         tr.innerHTML = `
           <td>${expense.date}</td>
           <td>${expense.person}</td>
           <td>${type}</td>
           <td>${money(expense.amount)}</td>
-          <td>${expense.category}</td>
+          <td>${expense.type === 'salary' ? '-' : expense.category}</td>
           <td>${expense.note || '-'}</td>
-          <td><button class="btn danger small" data-id="${expense.id}" ${disabled}>حذف</button></td>
+          <td>
+            <button class="btn secondary small" data-edit-id="${expense.id}" ${disabled}>تعديل</button>
+            <button class="btn danger small" data-delete-id="${expense.id}" ${disabled}>حذف</button>
+          </td>
         `;
         el('expenseRows').appendChild(tr);
       });
@@ -802,11 +933,17 @@
       el('pageTitle').textContent = isAdmin ? 'لوحة مصاريف العائلة' : `مصاريف ${state.currentUser.name}`;
       el('pageSubtitle').textContent = isAdmin ? 'الأب يستطيع رؤية وإدارة رواتب ومصاريف ومديونية الجميع.' : 'يمكنك تسجيل راتبك ومصاريفك ومديونيتك فقط.';
       el('settingsPanel').style.display = isAdmin ? 'block' : 'none';
+      el('salaryPerson').disabled = !isAdmin;
       el('expensePerson').disabled = !isAdmin;
+      el('debtPerson').disabled = !isAdmin;
       el('filterPerson').disabled = !isAdmin;
+      el('goalUser').disabled = !isAdmin;
       if (!isAdmin) {
+        el('salaryPerson').value = state.currentUser.name;
         el('expensePerson').value = state.currentUser.name;
+        el('debtPerson').value = state.currentUser.name;
         el('filterPerson').value = state.currentUser.name;
+        el('goalUser').value = state.currentUser.name;
         state.selectedPerson = state.currentUser.name;
       } else if (el('filterPerson').value !== state.selectedPerson) {
         state.selectedPerson = el('filterPerson').value;
@@ -816,25 +953,107 @@
       el('goalAmountInput').value = state.goals[el('goalUser').value] || '';
       renderStats();
       renderTable();
+      renderDebts();
+    }
+
+    function visibleDebts() {
+      return state.debts
+        .filter((debt) => state.currentUser.admin || debt.person === state.currentUser.name)
+        .filter((debt) => state.selectedPerson === 'all' || debt.person === state.selectedPerson)
+        .sort((a, b) => a.person.localeCompare(b.person, 'ar') || a.title.localeCompare(b.title, 'ar'));
+    }
+
+    function renderDebts() {
+      const rows = visibleDebts();
+      el('debtRows').innerHTML = '';
+      el('debtEmptyState').style.display = rows.length ? 'none' : 'block';
+      rows.forEach((debt) => {
+        const remaining = Math.max(Number(debt.principal || 0) - Number(debt.paid || 0), 0);
+        const disabled = canEdit({ person: debt.person }) ? '' : 'disabled';
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${debt.person}</td>
+          <td>${debt.title}</td>
+          <td>${debt.kind === 'main' ? 'رئيسي' : 'فرعي'}</td>
+          <td>${money(debt.principal)}</td>
+          <td>${money(debt.installment)}</td>
+          <td>${money(debt.paid)}</td>
+          <td>${money(remaining)}</td>
+          <td>${Number(debt.postponed || 0).toLocaleString('ar-SA')}</td>
+          <td>
+            <button class="btn secondary small" data-debt-pay-id="${debt.id}" ${disabled}>سداد قسط</button>
+            <button class="btn secondary small" data-debt-postpone-id="${debt.id}" ${disabled}>تأجيل</button>
+            <button class="btn danger small" data-debt-delete-id="${debt.id}" ${disabled}>حذف</button>
+          </td>
+        `;
+        el('debtRows').appendChild(tr);
+      });
+    }
+
+    function resetExpenseForm() {
+      state.editingId = null;
+      el('expenseForm').reset();
+      el('expenseDate').valueAsDate = new Date();
+      el('customCategory').value = '';
+      el('expensePerson').value = state.currentUser.admin ? 'الأب' : state.currentUser.name;
+      el('expensePerson').disabled = !state.currentUser.admin;
+      el('expenseForm').querySelector('button[type="submit"]').textContent = 'حفظ العملية';
+      updateCategoryMode();
+    }
+
+    function resetSalaryForm() {
+      state.editingId = null;
+      el('salaryForm').reset();
+      el('salaryDate').valueAsDate = new Date();
+      el('salaryPerson').value = state.currentUser.admin ? 'الأب' : state.currentUser.name;
+      el('salaryPerson').disabled = !state.currentUser.admin;
+      el('salaryForm').querySelector('button[type="submit"]').textContent = 'حفظ الراتب';
+    }
+
+    function startEditExpense(id) {
+      const expense = state.expenses.find((item) => item.id === id);
+      if (!expense || !canEdit(expense)) return;
+      if (expense.type === 'salary') {
+        state.editingId = id;
+        el('salaryPerson').value = expense.person;
+        el('salaryDate').value = expense.date;
+        el('salaryAmount').value = expense.amount;
+        el('salaryNote').value = expense.note || '';
+        el('salaryForm').querySelector('button[type="submit"]').textContent = 'حفظ تعديل الراتب';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
+      state.editingId = id;
+      el('expensePerson').value = expense.person;
+      el('expenseType').value = expense.type || 'expense';
+      el('expenseDate').value = expense.date;
+      el('expenseAmount').value = expense.amount;
+      el('expenseCategory').value = state.categories.includes(expense.category) ? expense.category : 'أخرى';
+      el('customCategory').value = state.categories.includes(expense.category) ? '' : expense.category;
+      el('expenseNote').value = expense.note || '';
+      updateCategoryMode();
+      el('expenseForm').querySelector('button[type="submit"]').textContent = 'حفظ التعديل';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     async function addExpense(event) {
       event.preventDefault();
       const expense = {
-        id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        id: state.editingId || `${Date.now()}-${Math.random().toString(16).slice(2)}`,
         person: el('expensePerson').value,
         type: el('expenseType').value,
         date: el('expenseDate').value,
         amount: Number(el('expenseAmount').value),
-        category: addCategory(el('customCategory').value || el('expenseCategory').value),
+        category: el('expenseType').value === 'salary' ? 'راتب' : addCategory(el('customCategory').value || el('expenseCategory').value),
         note: el('expenseNote').value.trim()
       };
       if (!state.currentUser.admin) {
         expense.person = state.currentUser.name;
       }
       if (SERVER_MODE) {
-        const payload = await apiRequest('/api/expenses', {
-          method: 'POST',
+        const url = state.editingId ? `/api/expenses/${encodeURIComponent(state.editingId)}` : '/api/expenses';
+        const payload = await apiRequest(url, {
+          method: state.editingId ? 'PUT' : 'POST',
           body: JSON.stringify({
             user: state.currentUser.name,
             password: state.authPassword,
@@ -844,12 +1063,49 @@
         state.expenses = payload.expenses || [];
         state.categories = payload.categories || state.categories;
       } else {
-        state.expenses.push(expense);
+        if (state.editingId) {
+          state.expenses = state.expenses.map((item) => item.id === state.editingId ? expense : item);
+        } else {
+          state.expenses.push(expense);
+        }
         saveExpenses();
       }
-      el('expenseAmount').value = '';
-      el('expenseNote').value = '';
-      el('customCategory').value = '';
+      resetExpenseForm();
+      render();
+    }
+
+    async function addSalary(event) {
+      event.preventDefault();
+      const expense = {
+        id: state.editingId || `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        person: state.currentUser.admin ? el('salaryPerson').value : state.currentUser.name,
+        type: 'salary',
+        date: el('salaryDate').value,
+        amount: Number(el('salaryAmount').value),
+        category: 'راتب',
+        note: el('salaryNote').value.trim()
+      };
+      if (SERVER_MODE) {
+        const url = state.editingId ? `/api/expenses/${encodeURIComponent(state.editingId)}` : '/api/expenses';
+        const payload = await apiRequest(url, {
+          method: state.editingId ? 'PUT' : 'POST',
+          body: JSON.stringify({
+            user: state.currentUser.name,
+            password: state.authPassword,
+            expense
+          })
+        });
+        state.expenses = payload.expenses || [];
+        state.categories = mergeCategories(payload.categories || state.categories);
+      } else {
+        if (state.editingId) {
+          state.expenses = state.expenses.map((item) => item.id === state.editingId ? expense : item);
+        } else {
+          state.expenses.push(expense);
+        }
+        saveExpenses();
+      }
+      resetSalaryForm();
       render();
     }
 
@@ -872,10 +1128,89 @@
       render();
     }
 
+    async function addDebt(event) {
+      event.preventDefault();
+      const debt = {
+        id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        person: state.currentUser.admin ? el('debtPerson').value : state.currentUser.name,
+        kind: el('debtKind').value,
+        title: el('debtTitle').value.trim(),
+        principal: Number(el('debtPrincipal').value),
+        installment: Number(el('debtInstallment').value || 0),
+        paid: Number(el('debtPaid').value || 0),
+        postponed: 0
+      };
+      if (!debt.title || !Number.isFinite(debt.principal) || debt.principal <= 0) return;
+      if (SERVER_MODE) {
+        const payload = await apiRequest('/api/debts', {
+          method: 'POST',
+          body: JSON.stringify({
+            user: state.currentUser.name,
+            password: state.authPassword,
+            debt
+          })
+        });
+        state.debts = payload.debts || [];
+      } else {
+        state.debts.push(debt);
+        saveExpenses();
+      }
+      el('debtForm').reset();
+      el('debtPerson').value = state.currentUser.admin ? 'الأب' : state.currentUser.name;
+      render();
+    }
+
+    async function updateDebt(id, action) {
+      const debt = state.debts.find((item) => item.id === id);
+      if (!debt || !canEdit({ person: debt.person })) return;
+      if (SERVER_MODE) {
+        const payload = await apiRequest(`/api/debts/${encodeURIComponent(id)}/${action}`, {
+          method: 'POST',
+          body: JSON.stringify({
+            user: state.currentUser.name,
+            password: state.authPassword
+          })
+        });
+        state.debts = payload.debts || [];
+      } else {
+        state.debts = state.debts.map((item) => {
+          if (item.id !== id) return item;
+          if (action === 'pay') {
+            return { ...item, paid: Math.min(Number(item.principal || 0), Number(item.paid || 0) + Number(item.installment || 0)) };
+          }
+          if (action === 'postpone') {
+            return { ...item, postponed: Number(item.postponed || 0) + 1 };
+          }
+          return item;
+        });
+        saveExpenses();
+      }
+      render();
+    }
+
+    async function deleteDebt(id) {
+      const debt = state.debts.find((item) => item.id === id);
+      if (!debt || !canEdit({ person: debt.person })) return;
+      if (SERVER_MODE) {
+        const payload = await apiRequest(`/api/debts/${encodeURIComponent(id)}`, {
+          method: 'DELETE',
+          body: JSON.stringify({
+            user: state.currentUser.name,
+            password: state.authPassword
+          })
+        });
+        state.debts = payload.debts || [];
+      } else {
+        state.debts = state.debts.filter((item) => item.id !== id);
+        saveExpenses();
+      }
+      render();
+    }
+
     function exportCsv() {
       const rows = visibleExpenses();
       const header = ['التاريخ', 'الاسم', 'النوع', 'المبلغ', 'التصنيف', 'ملاحظة'];
-      const csvRows = [header, ...rows.map((item) => [item.date, item.person, item.type === 'salary' ? 'راتب' : item.type === 'debt' ? 'مديونية' : 'مصروف', item.amount, item.category, item.note])];
+      const csvRows = [header, ...rows.map((item) => [item.date, item.person, item.type === 'salary' ? 'راتب' : item.type === 'debt' ? 'مديونية' : item.type === 'debt_payment' ? 'سداد مديونية' : 'مصروف', item.amount, item.type === 'salary' ? '-' : item.category, item.note])];
       const csv = '\uFEFF' + csvRows
         .map((row) => row.map((cell) => `"${String(cell ?? '').replace(/"/g, '""')}"`).join(','))
         .join('\n');
@@ -910,6 +1245,8 @@
       });
 
       el('expenseForm').addEventListener('submit', addExpense);
+      el('salaryForm').addEventListener('submit', addSalary);
+      el('debtForm').addEventListener('submit', addDebt);
       el('logoutBtn').addEventListener('click', logout);
       el('printBtn').addEventListener('click', () => window.print());
       el('exportBtn').addEventListener('click', exportCsv);
@@ -920,19 +1257,35 @@
       el('filterCategory').addEventListener('change', render);
       el('searchText').addEventListener('input', render);
       el('expenseType').addEventListener('change', () => {
-        if (el('expenseType').value === 'salary') {
-          el('expenseCategory').value = 'راتب';
-        } else if (el('expenseType').value === 'debt') {
+        if (el('expenseType').value === 'debt') {
           el('expenseCategory').value = 'مديونية';
+        } else if (el('expenseType').value === 'debt_payment') {
+          el('expenseCategory').value = 'سداد مديونية';
         }
+        updateCategoryMode();
       });
       el('expenseRows').addEventListener('click', (event) => {
-        if (event.target.matches('button[data-id]')) {
-          deleteExpense(event.target.dataset.id);
+        if (event.target.matches('button[data-edit-id]')) {
+          startEditExpense(event.target.dataset.editId);
+        }
+        if (event.target.matches('button[data-delete-id]')) {
+          deleteExpense(event.target.dataset.deleteId);
+        }
+      });
+      el('debtRows').addEventListener('click', (event) => {
+        if (event.target.matches('button[data-debt-pay-id]')) {
+          updateDebt(event.target.dataset.debtPayId, 'pay');
+        }
+        if (event.target.matches('button[data-debt-postpone-id]')) {
+          updateDebt(event.target.dataset.debtPostponeId, 'postpone');
+        }
+        if (event.target.matches('button[data-debt-delete-id]')) {
+          deleteDebt(event.target.dataset.debtDeleteId);
         }
       });
       el('savePasswordBtn').addEventListener('click', async () => {
         const next = el('newPassword').value.trim();
+        const targetUser = el('passwordUser').value;
         if (next.length < 4) {
           showNotice(el('settingsNotice'), 'اكتب كلمة مرور من 4 أحرف أو أكثر.');
           return;
@@ -943,28 +1296,32 @@
             body: JSON.stringify({
               user: state.currentUser.name,
               password: state.authPassword,
-              targetUser: el('passwordUser').value,
+              targetUser,
               nextPassword: next
             })
           });
-          if (el('passwordUser').value === state.currentUser.name) {
+          if (targetUser === state.currentUser.name) {
             state.authPassword = next;
           }
         } else {
-          setPassword(el('passwordUser').value, next);
+          setPassword(targetUser, next);
         }
         el('newPassword').value = '';
-        showNotice(el('settingsNotice'), 'تم حفظ كلمة المرور الجديدة.');
+        if (targetUser === state.currentUser.name) {
+          showNotice(el('settingsNotice'), 'تم حفظ كلمة المرور. سجّل الدخول بالكلمة الجديدة.');
+          setTimeout(logout, 1200);
+        } else {
+          showNotice(el('settingsNotice'), 'تم حفظ كلمة المرور الجديدة.');
+        }
       });
       el('goalUser').addEventListener('change', () => {
         el('goalAmountInput').value = state.goals[el('goalUser').value] || '';
       });
       el('saveGoalBtn').addEventListener('click', async () => {
-        if (!state.currentUser.admin) return;
-        const targetUser = el('goalUser').value;
+        const targetUser = state.currentUser.admin ? el('goalUser').value : state.currentUser.name;
         const amount = Number(el('goalAmountInput').value || 0);
         if (!Number.isFinite(amount) || amount < 0) {
-          showNotice(el('settingsNotice'), 'اكتب مبلغ هدف صحيح.');
+          showNotice(el('goalNotice'), 'اكتب مبلغ هدف صحيح.');
           return;
         }
         if (SERVER_MODE) {
@@ -982,7 +1339,7 @@
           state.goals[targetUser] = amount;
           saveExpenses();
         }
-        showNotice(el('settingsNotice'), 'تم حفظ الهدف.');
+        showNotice(el('goalNotice'), 'تم حفظ الهدف.');
         render();
       });
       el('clearBtn').addEventListener('click', async () => {
@@ -1009,6 +1366,7 @@
     async function boot() {
       initLists();
       await loadExpenses();
+      el('salaryDate').valueAsDate = new Date();
       el('expenseDate').valueAsDate = new Date();
       bindEvents();
       const savedUser = localStorage.getItem(SESSION_KEY);
