@@ -1,0 +1,13 @@
+{
+  "name": "family-expenses-app",
+  "version": "1.0.0",
+  "description": "Family expenses, salaries, goals, and categories app",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "node family-expenses-server.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

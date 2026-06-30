@@ -1,0 +1,1011 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>مصاريف العائلة</title>
+  <style>
+    :root {
+      --bg: #f7f5ef;
+      --panel: #ffffff;
+      --ink: #18212f;
+      --muted: #667085;
+      --line: #ded8cf;
+      --brand: #16665d;
+      --brand-dark: #0f4c45;
+      --accent: #d97a3a;
+      --danger: #b42318;
+      --ok: #157f3b;
+      --shadow: 0 14px 36px rgba(24, 33, 47, .12);
+      font-family: Tahoma, Arial, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        linear-gradient(135deg, rgba(22,102,93,.12), transparent 34%),
+        linear-gradient(315deg, rgba(217,122,58,.12), transparent 32%),
+        var(--bg);
+      color: var(--ink);
+    }
+
+    button, input, select, textarea { font: inherit; }
+    button { cursor: pointer; }
+
+    .screen {
+      min-height: 100vh;
+      display: none;
+    }
+
+    .screen.active { display: block; }
+
+    .login-wrap {
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+
+    .login-card {
+      width: min(480px, 100%);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      padding: 28px;
+    }
+
+    .brand-mark {
+      width: 54px;
+      height: 54px;
+      border-radius: 8px;
+      background: var(--brand);
+      color: #fff;
+      display: grid;
+      place-items: center;
+      font-size: 28px;
+      margin-bottom: 18px;
+    }
+
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { font-size: 30px; margin-bottom: 8px; }
+    h2 { font-size: 22px; margin-bottom: 16px; }
+    h3 { font-size: 17px; margin-bottom: 12px; }
+    .muted { color: var(--muted); }
+    .tiny { font-size: 13px; }
+
+    label {
+      display: block;
+      color: #344054;
+      margin-bottom: 7px;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      border: 1px solid #cfc7bd;
+      border-radius: 6px;
+      padding: 11px 12px;
+      background: #fff;
+      color: var(--ink);
+      outline: none;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--brand);
+      box-shadow: 0 0 0 3px rgba(22,102,93,.14);
+    }
+
+    .field { margin-bottom: 16px; }
+
+    .btn {
+      border: 0;
+      border-radius: 6px;
+      padding: 11px 15px;
+      background: var(--brand);
+      color: #fff;
+      font-weight: 700;
+      min-height: 44px;
+    }
+
+    .btn:hover { background: var(--brand-dark); }
+    .btn.secondary {
+      background: #f2eee7;
+      color: var(--ink);
+      border: 1px solid var(--line);
+    }
+    .btn.secondary:hover { background: #e9e2d8; }
+    .btn.danger { background: var(--danger); }
+    .btn.danger:hover { background: #912018; }
+    .btn.small { min-height: 34px; padding: 7px 10px; font-size: 13px; }
+
+    .app-shell {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 270px 1fr;
+    }
+
+    aside {
+      background: #103b37;
+      color: #fff;
+      padding: 22px;
+    }
+
+    .side-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+
+    .side-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 8px;
+      background: var(--accent);
+      display: grid;
+      place-items: center;
+      font-size: 22px;
+      flex: 0 0 auto;
+    }
+
+    .user-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .user-tab {
+      width: 100%;
+      border: 1px solid rgba(255,255,255,.13);
+      border-radius: 6px;
+      background: rgba(255,255,255,.06);
+      color: #fff;
+      padding: 10px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      text-align: right;
+    }
+
+    .user-tab.active {
+      background: #fff;
+      color: var(--brand-dark);
+      border-color: #fff;
+    }
+
+    .role-pill {
+      font-size: 12px;
+      border-radius: 99px;
+      padding: 3px 8px;
+      background: rgba(217,122,58,.18);
+      color: inherit;
+      white-space: nowrap;
+    }
+
+    main {
+      padding: 24px;
+      max-width: 1240px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .top-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+
+    .stat, .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 8px 22px rgba(24, 33, 47, .07);
+    }
+
+    .stat {
+      padding: 16px;
+      min-height: 102px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .stat strong {
+      display: block;
+      font-size: 24px;
+      margin-top: 8px;
+    }
+
+    .content-grid {
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .panel { padding: 18px; }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .filters {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      overflow-wrap: anywhere;
+    }
+
+    th, td {
+      border-bottom: 1px solid #ece7df;
+      padding: 11px 8px;
+      text-align: right;
+      vertical-align: top;
+      font-size: 14px;
+    }
+
+    th {
+      color: #475467;
+      font-size: 13px;
+      background: #fbfaf7;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+
+    .table-wrap {
+      max-height: 520px;
+      overflow: auto;
+      border: 1px solid #ece7df;
+      border-radius: 6px;
+    }
+
+    .empty {
+      padding: 26px;
+      text-align: center;
+      color: var(--muted);
+    }
+
+    .notice {
+      display: none;
+      margin-top: 12px;
+      padding: 10px 12px;
+      border-radius: 6px;
+      background: #fff3ed;
+      color: #9c4818;
+      border: 1px solid #ffd7c2;
+    }
+
+    .notice.show { display: block; }
+
+    .settings {
+      margin-top: 18px;
+      padding-top: 18px;
+      border-top: 1px solid var(--line);
+    }
+
+    @media (max-width: 980px) {
+      .app-shell { grid-template-columns: 1fr; }
+      aside { position: static; }
+      .user-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .content-grid { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 620px) {
+      main, aside { padding: 16px; }
+      .topbar { align-items: stretch; flex-direction: column; }
+      .top-actions { justify-content: stretch; }
+      .top-actions .btn { flex: 1; }
+      .grid, .filters, .form-row, .user-list { grid-template-columns: 1fr; }
+      th:nth-child(5), td:nth-child(5) { display: none; }
+      h1 { font-size: 25px; }
+    }
+  </style>
+</head>
+<body>
+  <section id="loginScreen" class="screen active">
+    <div class="login-wrap">
+      <div class="login-card">
+        <div class="brand-mark">ر.س</div>
+        <h1>مصاريف العائلة</h1>
+        <p class="muted">تسجيل مشترك لمصاريف الأب، الأم، عبدالله، مروان، عبدالرحمن، مريم، والمها.</p>
+        <form id="loginForm">
+          <div class="field">
+            <label for="loginUser">الدخول باسم</label>
+            <select id="loginUser"></select>
+          </div>
+          <div class="field">
+            <label for="password">كلمة المرور</label>
+            <input id="password" type="password" autocomplete="current-password" placeholder="اكتب كلمة المرور">
+          </div>
+          <button class="btn" type="submit" style="width:100%">دخول</button>
+          <div id="loginNotice" class="notice">كلمة المرور غير صحيحة.</div>
+        </form>
+        <p class="muted tiny" style="margin:16px 0 0">كلمة المرور الافتراضية: <strong>1234</strong></p>
+      </div>
+    </div>
+  </section>
+
+  <section id="appScreen" class="screen">
+    <div class="app-shell">
+      <aside>
+        <div class="side-title">
+          <div class="side-icon">د</div>
+          <div>
+            <h2 style="margin:0">دفتر المصاريف</h2>
+            <div class="tiny" id="sessionLabel"></div>
+          </div>
+        </div>
+        <div class="user-list" id="userList"></div>
+      </aside>
+
+      <main>
+        <div class="topbar">
+          <div>
+            <h1 id="pageTitle">لوحة المصاريف</h1>
+            <p class="muted" id="pageSubtitle">كل البيانات محفوظة على هذا المتصفح.</p>
+          </div>
+          <div class="top-actions">
+            <button class="btn secondary" id="exportBtn" type="button">تصدير CSV</button>
+            <button class="btn secondary" id="printBtn" type="button">طباعة</button>
+            <button class="btn danger" id="logoutBtn" type="button">خروج</button>
+          </div>
+        </div>
+
+        <section class="grid" aria-label="ملخص المصاريف">
+          <div class="stat"><span class="muted">إجمالي الرواتب</span><strong id="totalAll">0</strong></div>
+          <div class="stat"><span class="muted">إجمالي المصاريف</span><strong id="totalSelected">0</strong></div>
+          <div class="stat"><span class="muted">الرصيد الحالي</span><strong id="balanceAmount">0</strong></div>
+          <div class="stat"><span class="muted">الهدف</span><strong id="goalAmount">0</strong></div>
+          <div class="stat"><span class="muted">الباقي للهدف</span><strong id="goalRemaining">0</strong></div>
+        </section>
+
+        <section class="content-grid">
+          <div class="panel">
+            <h2>إضافة راتب أو مصروف</h2>
+            <form id="expenseForm">
+              <div class="form-row">
+                <div class="field">
+                  <label for="expensePerson">الاسم</label>
+                  <select id="expensePerson"></select>
+                </div>
+                <div class="field">
+                  <label for="expenseDate">التاريخ</label>
+                  <input id="expenseDate" type="date" required>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="field">
+                  <label for="expenseType">نوع العملية</label>
+                  <select id="expenseType">
+                    <option value="expense">مصروف</option>
+                    <option value="salary">راتب</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="expenseAmount">المبلغ</label>
+                  <input id="expenseAmount" type="number" min="0.01" step="0.01" required placeholder="0.00">
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="field">
+                  <label for="expenseCategory">التصنيف</label>
+                  <select id="expenseCategory">
+                    <option>راتب</option>
+                    <option>بيت</option>
+                    <option>أكل</option>
+                    <option>مواصلات</option>
+                    <option>مدرسة</option>
+                    <option>صحة</option>
+                    <option>ترفيه</option>
+                    <option>أخرى</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="customCategory">تصنيف جديد</label>
+                  <input id="customCategory" type="text" placeholder="مثال: صيانة السيارة">
+                </div>
+              </div>
+              <div class="field">
+                <label for="expenseNote">ملاحظة</label>
+                <textarea id="expenseNote" rows="3" placeholder="مثال: مشتريات البيت"></textarea>
+              </div>
+              <button class="btn" type="submit" style="width:100%">حفظ المصروف</button>
+            </form>
+
+            <div class="settings" id="settingsPanel">
+              <h3>إعدادات المدير</h3>
+              <div class="field">
+                <label for="passwordUser">اختيار الشخص</label>
+                <select id="passwordUser"></select>
+              </div>
+              <div class="field">
+                <label for="newPassword">كلمة المرور الجديدة لهذا الشخص</label>
+                <input id="newPassword" type="password" placeholder="كلمة مرور جديدة">
+              </div>
+              <button class="btn secondary" id="savePasswordBtn" type="button" style="width:100%">حفظ كلمة المرور</button>
+              <div class="settings">
+                <h3>أهداف الادخار</h3>
+                <div class="field">
+                  <label for="goalUser">اختيار الشخص</label>
+                  <select id="goalUser"></select>
+                </div>
+                <div class="field">
+                  <label for="goalAmountInput">مبلغ الهدف</label>
+                  <input id="goalAmountInput" type="number" min="0" step="0.01" placeholder="مثال: 20000">
+                </div>
+                <button class="btn secondary" id="saveGoalBtn" type="button" style="width:100%">حفظ الهدف</button>
+              </div>
+              <button class="btn danger" id="clearBtn" type="button" style="width:100%; margin-top:8px">حذف كل البيانات</button>
+              <div id="settingsNotice" class="notice"></div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <h2>سجل المصاريف</h2>
+            <div class="filters">
+              <div>
+                <label for="filterPerson">تصفية بالاسم</label>
+                <select id="filterPerson"></select>
+              </div>
+              <div>
+                <label for="filterCategory">التصنيف</label>
+                <select id="filterCategory">
+                  <option value="all">كل التصنيفات</option>
+                </select>
+              </div>
+              <div>
+                <label for="searchText">بحث</label>
+                <input id="searchText" type="search" placeholder="ملاحظة أو اسم">
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>التاريخ</th>
+                    <th>الاسم</th>
+                    <th>النوع</th>
+                    <th>المبلغ</th>
+                    <th>التصنيف</th>
+                    <th>ملاحظة</th>
+                    <th>إجراء</th>
+                  </tr>
+                </thead>
+                <tbody id="expenseRows"></tbody>
+              </table>
+              <div class="empty" id="emptyState">لا توجد مصاريف مسجلة بعد.</div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </section>
+
+  <script>
+    const USERS = [
+      { name: 'الأب', role: 'الرئيسي', admin: true },
+      { name: 'الأم', role: 'عضو' },
+      { name: 'عبدالله', role: 'عضو' },
+      { name: 'مروان', role: 'عضو' },
+      { name: 'عبدالرحمن', role: 'عضو' },
+      { name: 'مريم', role: 'عضو' },
+      { name: 'المها', role: 'عضو' }
+    ];
+
+    const CATEGORIES = ['راتب', 'بيت', 'أكل', 'مواصلات', 'مدرسة', 'صحة', 'ترفيه', 'أخرى'];
+    const STORAGE_KEY = 'family-expenses-v1';
+    const GOALS_KEY = 'family-expenses-goals-v1';
+    const CATEGORIES_KEY = 'family-expenses-categories-v1';
+    const PASS_KEY = 'family-expenses-passwords-v2';
+    const SESSION_KEY = 'family-expenses-user-v1';
+    const DEFAULT_PASSWORD = '1234';
+    const SERVER_MODE = location.protocol === 'http:' || location.protocol === 'https:';
+
+    const state = {
+      currentUser: null,
+      selectedPerson: 'all',
+      expenses: [],
+      goals: {},
+      categories: [...CATEGORIES],
+      authPassword: ''
+    };
+
+    const el = (id) => document.getElementById(id);
+    const money = (value) => Number(value || 0).toLocaleString('ar-SA', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+
+    function getPasswords() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(PASS_KEY) || '{}');
+        return Object.fromEntries(USERS.map((user) => [user.name, saved[user.name] || DEFAULT_PASSWORD]));
+      } catch {
+        return Object.fromEntries(USERS.map((user) => [user.name, DEFAULT_PASSWORD]));
+      }
+    }
+
+    function getPassword(name) {
+      return getPasswords()[name] || DEFAULT_PASSWORD;
+    }
+
+    function setPassword(name, password) {
+      const passwords = getPasswords();
+      passwords[name] = password;
+      localStorage.setItem(PASS_KEY, JSON.stringify(passwords));
+    }
+
+    async function apiRequest(path, options = {}) {
+      const response = await fetch(path, {
+        headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+        ...options
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(payload.error || 'تعذر الاتصال بالبرنامج.');
+      }
+      return payload;
+    }
+
+    function saveExpenses() {
+      if (!SERVER_MODE) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state.expenses));
+        localStorage.setItem(GOALS_KEY, JSON.stringify(state.goals));
+        localStorage.setItem(CATEGORIES_KEY, JSON.stringify(state.categories));
+      }
+    }
+
+    async function loadExpenses() {
+      if (SERVER_MODE && state.currentUser) {
+        const query = new URLSearchParams({
+          user: state.currentUser.name,
+          password: state.authPassword
+        });
+        const payload = await apiRequest(`/api/expenses?${query.toString()}`);
+        state.expenses = payload.expenses || [];
+        state.goals = payload.goals || {};
+        state.categories = payload.categories || state.categories;
+        return;
+      }
+      try {
+        state.expenses = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+        state.goals = JSON.parse(localStorage.getItem(GOALS_KEY) || '{}');
+        state.categories = mergeCategories(JSON.parse(localStorage.getItem(CATEGORIES_KEY) || '[]'));
+      } catch {
+        state.expenses = [];
+        state.goals = {};
+        state.categories = [...CATEGORIES];
+      }
+    }
+
+    function mergeCategories(extra = []) {
+      return [...new Set([...CATEGORIES, ...extra, ...state.expenses.map((item) => item.category).filter(Boolean)])];
+    }
+
+    function addCategory(category) {
+      const clean = category.trim();
+      if (!clean) return '';
+      state.categories = mergeCategories([clean]);
+      if (!SERVER_MODE) {
+        localStorage.setItem(CATEGORIES_KEY, JSON.stringify(state.categories));
+      }
+      return clean;
+    }
+
+    function fillSelect(select, options, includeAllLabel) {
+      select.innerHTML = '';
+      if (includeAllLabel) {
+        select.add(new Option(includeAllLabel, 'all'));
+      }
+      options.forEach((item) => select.add(new Option(item.name || item, item.name || item)));
+    }
+
+    function initLists() {
+      fillSelect(el('loginUser'), USERS);
+      fillSelect(el('expensePerson'), USERS);
+      fillSelect(el('filterPerson'), USERS, 'كل الأسماء');
+      fillSelect(el('passwordUser'), USERS);
+      fillSelect(el('goalUser'), USERS);
+      renderCategoryOptions();
+    }
+
+    function renderCategoryOptions() {
+      const selectedExpense = el('expenseCategory').value || 'بيت';
+      const selectedFilter = el('filterCategory').value || 'all';
+      el('expenseCategory').innerHTML = '';
+      el('filterCategory').innerHTML = '';
+      el('filterCategory').add(new Option('كل التصنيفات', 'all'));
+      state.categories.forEach((cat) => {
+        el('expenseCategory').add(new Option(cat, cat));
+        el('filterCategory').add(new Option(cat, cat));
+      });
+      if (state.categories.includes(selectedExpense)) el('expenseCategory').value = selectedExpense;
+      if (selectedFilter === 'all' || state.categories.includes(selectedFilter)) el('filterCategory').value = selectedFilter;
+    }
+
+    function showNotice(node, text) {
+      node.textContent = text;
+      node.classList.add('show');
+      setTimeout(() => node.classList.remove('show'), 2600);
+    }
+
+    async function login(name, password) {
+      state.currentUser = USERS.find((user) => user.name === name);
+      state.authPassword = password || getPassword(name);
+      localStorage.setItem(SESSION_KEY, name);
+      el('loginScreen').classList.remove('active');
+      el('appScreen').classList.add('active');
+      state.selectedPerson = state.currentUser.admin ? 'all' : state.currentUser.name;
+      el('expensePerson').value = state.currentUser.admin ? 'الأب' : state.currentUser.name;
+      el('filterPerson').value = state.selectedPerson;
+      await loadExpenses();
+      render();
+    }
+
+    function logout() {
+      localStorage.removeItem(SESSION_KEY);
+      state.currentUser = null;
+      state.authPassword = '';
+      el('password').value = '';
+      el('appScreen').classList.remove('active');
+      el('loginScreen').classList.add('active');
+    }
+
+    function canEdit() {
+      return state.currentUser.admin;
+    }
+
+    function visibleExpenses() {
+      const person = el('filterPerson').value;
+      const category = el('filterCategory').value;
+      const search = el('searchText').value.trim().toLowerCase();
+
+      return state.expenses
+        .filter((expense) => state.currentUser.admin || expense.person === state.currentUser.name)
+        .filter((expense) => person === 'all' || expense.person === person)
+        .filter((expense) => category === 'all' || expense.category === category)
+        .filter((expense) => {
+          if (!search) return true;
+          return `${expense.person} ${expense.category} ${expense.note}`.toLowerCase().includes(search);
+        })
+        .sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
+    }
+
+    function renderUsers() {
+      el('userList').innerHTML = '';
+      const allowedUsers = state.currentUser.admin ? USERS : USERS.filter((user) => user.name === state.currentUser.name);
+      allowedUsers.forEach((user) => {
+        const totalSalary = state.expenses
+          .filter((expense) => expense.person === user.name && expense.type === 'salary')
+          .reduce((sum, expense) => sum + Number(expense.amount), 0);
+        const totalExpense = state.expenses
+          .filter((expense) => expense.person === user.name && (expense.type || 'expense') === 'expense')
+          .reduce((sum, expense) => sum + Number(expense.amount), 0);
+        const total = totalSalary - totalExpense;
+        const goal = Number(state.goals[user.name] || 0);
+        const goalText = goal ? ` / هدف ${money(goal)}` : '';
+        const button = document.createElement('button');
+        button.className = `user-tab ${state.selectedPerson === user.name ? 'active' : ''}`;
+        button.type = 'button';
+        button.innerHTML = `<span>${user.name}<br><small>${money(total)}${goalText}</small></span><span class="role-pill">${user.role}</span>`;
+        button.addEventListener('click', () => {
+          state.selectedPerson = user.name;
+          el('filterPerson').value = user.name;
+          render();
+        });
+        el('userList').appendChild(button);
+      });
+
+      if (state.currentUser.admin) {
+        const all = document.createElement('button');
+        all.className = `user-tab ${state.selectedPerson === 'all' ? 'active' : ''}`;
+        all.type = 'button';
+        all.innerHTML = '<span>الجميع<br><small>عرض شامل</small></span><span class="role-pill">كل</span>';
+        all.addEventListener('click', () => {
+          state.selectedPerson = 'all';
+          el('filterPerson').value = 'all';
+          render();
+        });
+        el('userList').prepend(all);
+      }
+    }
+
+    function renderStats() {
+      const allowed = state.currentUser.admin
+        ? state.expenses
+        : state.expenses.filter((expense) => expense.person === state.currentUser.name);
+      const selected = state.selectedPerson === 'all'
+        ? allowed
+        : allowed.filter((expense) => expense.person === state.selectedPerson);
+      const totalSalary = selected
+        .filter((expense) => expense.type === 'salary')
+        .reduce((sum, expense) => sum + Number(expense.amount), 0);
+      const totalExpense = selected
+        .filter((expense) => (expense.type || 'expense') === 'expense')
+        .reduce((sum, expense) => sum + Number(expense.amount), 0);
+      const balance = totalSalary - totalExpense;
+      const selectedPeople = state.selectedPerson === 'all'
+        ? (state.currentUser.admin ? USERS : [state.currentUser])
+        : USERS.filter((user) => user.name === state.selectedPerson);
+      const goal = selectedPeople.reduce((sum, user) => sum + Number(state.goals[user.name] || 0), 0);
+      const goalRemaining = Math.max(goal - balance, 0);
+      el('totalAll').textContent = money(totalSalary);
+      el('totalSelected').textContent = money(totalExpense);
+      el('balanceAmount').textContent = money(balance);
+      el('goalAmount').textContent = money(goal);
+      el('goalRemaining').textContent = money(goalRemaining);
+    }
+
+    function renderTable() {
+      const rows = visibleExpenses();
+      el('expenseRows').innerHTML = '';
+      el('emptyState').style.display = rows.length ? 'none' : 'block';
+      rows.forEach((expense) => {
+        const tr = document.createElement('tr');
+        const disabled = canEdit(expense) ? '' : 'disabled';
+        const type = expense.type === 'salary' ? 'راتب' : 'مصروف';
+        tr.innerHTML = `
+          <td>${expense.date}</td>
+          <td>${expense.person}</td>
+          <td>${type}</td>
+          <td>${money(expense.amount)}</td>
+          <td>${expense.category}</td>
+          <td>${expense.note || '-'}</td>
+          <td><button class="btn danger small" data-id="${expense.id}" ${disabled}>حذف</button></td>
+        `;
+        el('expenseRows').appendChild(tr);
+      });
+    }
+
+    function render() {
+      const isAdmin = state.currentUser.admin;
+      el('sessionLabel').textContent = `الدخول: ${state.currentUser.name}`;
+      el('pageTitle').textContent = isAdmin ? 'لوحة مصاريف العائلة' : `مصاريف ${state.currentUser.name}`;
+      el('pageSubtitle').textContent = isAdmin ? 'الأب يستطيع رؤية وإدارة رواتب ومصاريف الجميع.' : 'يمكنك تسجيل راتبك ومصاريفك فقط.';
+      el('settingsPanel').style.display = isAdmin ? 'block' : 'none';
+      el('expensePerson').disabled = !isAdmin;
+      el('filterPerson').disabled = !isAdmin;
+      if (!isAdmin) {
+        el('expensePerson').value = state.currentUser.name;
+        el('filterPerson').value = state.currentUser.name;
+        state.selectedPerson = state.currentUser.name;
+      } else if (el('filterPerson').value !== state.selectedPerson) {
+        state.selectedPerson = el('filterPerson').value;
+      }
+      renderUsers();
+      renderCategoryOptions();
+      el('goalAmountInput').value = state.goals[el('goalUser').value] || '';
+      renderStats();
+      renderTable();
+    }
+
+    async function addExpense(event) {
+      event.preventDefault();
+      const expense = {
+        id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        person: el('expensePerson').value,
+        type: el('expenseType').value,
+        date: el('expenseDate').value,
+        amount: Number(el('expenseAmount').value),
+        category: addCategory(el('customCategory').value || el('expenseCategory').value),
+        note: el('expenseNote').value.trim()
+      };
+      if (!state.currentUser.admin) {
+        expense.person = state.currentUser.name;
+      }
+      if (SERVER_MODE) {
+        const payload = await apiRequest('/api/expenses', {
+          method: 'POST',
+          body: JSON.stringify({
+            user: state.currentUser.name,
+            password: state.authPassword,
+            expense
+          })
+        });
+        state.expenses = payload.expenses || [];
+        state.categories = payload.categories || state.categories;
+      } else {
+        state.expenses.push(expense);
+        saveExpenses();
+      }
+      el('expenseAmount').value = '';
+      el('expenseNote').value = '';
+      el('customCategory').value = '';
+      render();
+    }
+
+    async function deleteExpense(id) {
+      const expense = state.expenses.find((item) => item.id === id);
+      if (!expense || !canEdit(expense)) return;
+      if (SERVER_MODE) {
+        const payload = await apiRequest(`/api/expenses/${encodeURIComponent(id)}`, {
+          method: 'DELETE',
+          body: JSON.stringify({
+            user: state.currentUser.name,
+            password: state.authPassword
+          })
+        });
+        state.expenses = payload.expenses || [];
+      } else {
+        state.expenses = state.expenses.filter((item) => item.id !== id);
+        saveExpenses();
+      }
+      render();
+    }
+
+    function exportCsv() {
+      const rows = visibleExpenses();
+      const header = ['التاريخ', 'الاسم', 'النوع', 'المبلغ', 'التصنيف', 'ملاحظة'];
+      const csvRows = [header, ...rows.map((item) => [item.date, item.person, item.type === 'salary' ? 'راتب' : 'مصروف', item.amount, item.category, item.note])];
+      const csv = '\uFEFF' + csvRows
+        .map((row) => row.map((cell) => `"${String(cell ?? '').replace(/"/g, '""')}"`).join(','))
+        .join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = 'family-expenses.csv';
+      link.click();
+      URL.revokeObjectURL(link.href);
+    }
+
+    function bindEvents() {
+      el('loginForm').addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const name = el('loginUser').value;
+        const password = el('password').value;
+        try {
+          if (SERVER_MODE) {
+            await apiRequest('/api/login', {
+              method: 'POST',
+              body: JSON.stringify({ user: name, password })
+            });
+            await login(name, password);
+          } else if (password === getPassword(name)) {
+            await login(name, password);
+          } else {
+            throw new Error('كلمة المرور غير صحيحة.');
+          }
+        } catch (error) {
+          showNotice(el('loginNotice'), 'كلمة المرور غير صحيحة.');
+        }
+      });
+
+      el('expenseForm').addEventListener('submit', addExpense);
+      el('logoutBtn').addEventListener('click', logout);
+      el('printBtn').addEventListener('click', () => window.print());
+      el('exportBtn').addEventListener('click', exportCsv);
+      el('filterPerson').addEventListener('change', () => {
+        state.selectedPerson = el('filterPerson').value;
+        render();
+      });
+      el('filterCategory').addEventListener('change', render);
+      el('searchText').addEventListener('input', render);
+      el('expenseType').addEventListener('change', () => {
+        if (el('expenseType').value === 'salary') {
+          el('expenseCategory').value = 'راتب';
+        }
+      });
+      el('expenseRows').addEventListener('click', (event) => {
+        if (event.target.matches('button[data-id]')) {
+          deleteExpense(event.target.dataset.id);
+        }
+      });
+      el('savePasswordBtn').addEventListener('click', async () => {
+        const next = el('newPassword').value.trim();
+        if (next.length < 4) {
+          showNotice(el('settingsNotice'), 'اكتب كلمة مرور من 4 أحرف أو أكثر.');
+          return;
+        }
+        if (SERVER_MODE) {
+          await apiRequest('/api/password', {
+            method: 'POST',
+            body: JSON.stringify({
+              user: state.currentUser.name,
+              password: state.authPassword,
+              targetUser: el('passwordUser').value,
+              nextPassword: next
+            })
+          });
+          if (el('passwordUser').value === state.currentUser.name) {
+            state.authPassword = next;
+          }
+        } else {
+          setPassword(el('passwordUser').value, next);
+        }
+        el('newPassword').value = '';
+        showNotice(el('settingsNotice'), 'تم حفظ كلمة المرور الجديدة.');
+      });
+      el('goalUser').addEventListener('change', () => {
+        el('goalAmountInput').value = state.goals[el('goalUser').value] || '';
+      });
+      el('saveGoalBtn').addEventListener('click', async () => {
+        if (!state.currentUser.admin) return;
+        const targetUser = el('goalUser').value;
+        const amount = Number(el('goalAmountInput').value || 0);
+        if (!Number.isFinite(amount) || amount < 0) {
+          showNotice(el('settingsNotice'), 'اكتب مبلغ هدف صحيح.');
+          return;
+        }
+        if (SERVER_MODE) {
+          const payload = await apiRequest('/api/goal', {
+            method: 'POST',
+            body: JSON.stringify({
+              user: state.currentUser.name,
+              password: state.authPassword,
+              targetUser,
+              amount
+            })
+          });
+          state.goals = payload.goals || {};
+        } else {
+          state.goals[targetUser] = amount;
+          saveExpenses();
+        }
+        showNotice(el('settingsNotice'), 'تم حفظ الهدف.');
+        render();
+      });
+      el('clearBtn').addEventListener('click', async () => {
+        if (!state.currentUser.admin) return;
+        if (confirm('هل تريد حذف كل المصاريف؟')) {
+          if (SERVER_MODE) {
+            const payload = await apiRequest('/api/clear', {
+              method: 'POST',
+              body: JSON.stringify({
+                user: state.currentUser.name,
+                password: state.authPassword
+              })
+            });
+            state.expenses = payload.expenses || [];
+          } else {
+            state.expenses = [];
+            saveExpenses();
+          }
+          render();
+        }
+      });
+    }
+
+    async function boot() {
+      initLists();
+      await loadExpenses();
+      el('expenseDate').valueAsDate = new Date();
+      bindEvents();
+      const savedUser = localStorage.getItem(SESSION_KEY);
+      if (!SERVER_MODE && savedUser && USERS.some((user) => user.name === savedUser)) {
+        await login(savedUser);
+      }
+    }
+
+    boot();
+  </script>
+</body>
+</html>
