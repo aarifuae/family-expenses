@@ -19,7 +19,7 @@ const users = [
   { name: 'المها', role: 'عضو' }
 ];
 
-const defaultCategories = ['راتب', 'بيت', 'أكل', 'مواصلات', 'مدرسة', 'صحة', 'ترفيه', 'أخرى'];
+const defaultCategories = ['راتب', 'مديونية', 'بيت', 'أكل', 'مواصلات', 'مدرسة', 'صحة', 'ترفيه', 'أخرى'];
 
 function defaultData() {
   return {
@@ -161,10 +161,12 @@ const server = http.createServer(async (req, res) => {
       const category = String(expense.category || 'أخرى').trim().slice(0, 60) || 'أخرى';
       if (!data.categories.includes(category)) data.categories.push(category);
 
+      const type = ['salary', 'expense', 'debt'].includes(expense.type) ? expense.type : 'expense';
+
       data.expenses.push({
         id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
         person,
-        type: expense.type === 'salary' ? 'salary' : 'expense',
+        type,
         date: String(expense.date),
         amount,
         category,

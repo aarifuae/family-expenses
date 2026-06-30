@@ -383,6 +383,7 @@
         <section class="grid" aria-label="ملخص المصاريف">
           <div class="stat"><span class="muted">إجمالي الرواتب</span><strong id="totalAll">0</strong></div>
           <div class="stat"><span class="muted">إجمالي المصاريف</span><strong id="totalSelected">0</strong></div>
+          <div class="stat"><span class="muted">إجمالي المديونية</span><strong id="totalDebt">0</strong></div>
           <div class="stat"><span class="muted">الرصيد الحالي</span><strong id="balanceAmount">0</strong></div>
           <div class="stat"><span class="muted">الهدف</span><strong id="goalAmount">0</strong></div>
           <div class="stat"><span class="muted">الباقي للهدف</span><strong id="goalRemaining">0</strong></div>
@@ -390,7 +391,7 @@
 
         <section class="content-grid">
           <div class="panel">
-            <h2>إضافة راتب أو مصروف</h2>
+            <h2>إضافة راتب أو مصروف أو مديونية</h2>
             <form id="expenseForm">
               <div class="form-row">
                 <div class="field">
@@ -408,6 +409,7 @@
                   <select id="expenseType">
                     <option value="expense">مصروف</option>
                     <option value="salary">راتب</option>
+                    <option value="debt">مديونية</option>
                   </select>
                 </div>
                 <div class="field">
@@ -420,6 +422,7 @@
                   <label for="expenseCategory">التصنيف</label>
                   <select id="expenseCategory">
                     <option>راتب</option>
+                    <option>مديونية</option>
                     <option>بيت</option>
                     <option>أكل</option>
                     <option>مواصلات</option>
@@ -521,7 +524,7 @@
       { name: 'المها', role: 'عضو' }
     ];
 
-    const CATEGORIES = ['راتب', 'بيت', 'أكل', 'مواصلات', 'مدرسة', 'صحة', 'ترفيه', 'أخرى'];
+    const CATEGORIES = ['راتب', 'مديونية', 'بيت', 'أكل', 'مواصلات', 'مدرسة', 'صحة', 'ترفيه', 'أخرى'];
     const STORAGE_KEY = 'family-expenses-v1';
     const GOALS_KEY = 'family-expenses-goals-v1';
     const CATEGORIES_KEY = 'family-expenses-categories-v1';
@@ -710,7 +713,10 @@
         const totalExpense = state.expenses
           .filter((expense) => expense.person === user.name && (expense.type || 'expense') === 'expense')
           .reduce((sum, expense) => sum + Number(expense.amount), 0);
-        const total = totalSalary - totalExpense;
+        const totalDebt = state.expenses
+          .filter((expense) => expense.person === user.name && expense.type === 'debt')
+          .reduce((sum, expense) => sum + Number(expense.amount), 0);
+        const total = totalSalary - totalExpense - totalDebt;
         const goal = Number(state.goals[user.name] || 0);
         const goalText = goal ? ` / هدف ${money(goal)}` : '';
         const button = document.createElement('button');
@@ -752,7 +758,10 @@
       const totalExpense = selected
         .filter((expense) => (expense.type || 'expense') === 'expense')
         .reduce((sum, expense) => sum + Number(expense.amount), 0);
-      const balance = totalSalary - totalExpense;
+      const totalDebt = selected
+        .filter((expense) => expense.type === 'debt')
+        .reduce((sum, expense) => sum + Number(expense.amount), 0);
+      const balance = totalSalary - totalExpense - totalDebt;
       const selectedPeople = state.selectedPerson === 'all'
         ? (state.currentUser.admin ? USERS : [state.currentUser])
         : USERS.filter((user) => user.name === state.selectedPerson);
@@ -760,6 +769,7 @@
       const goalRemaining = Math.max(goal - balance, 0);
       el('totalAll').textContent = money(totalSalary);
       el('totalSelected').textContent = money(totalExpense);
+      el('totalDebt').textContent = money(totalDebt);
       el('balanceAmount').textContent = money(balance);
       el('goalAmount').textContent = money(goal);
       el('goalRemaining').textContent = money(goalRemaining);
@@ -772,7 +782,7 @@
       rows.forEach((expense) => {
         const tr = document.createElement('tr');
         const disabled = canEdit(expense) ? '' : 'disabled';
-        const type = expense.type === 'salary' ? 'راتب' : 'مصروف';
+        const type = expense.type === 'salary' ? 'راتب' : expense.type === 'debt' ? 'مديونية' : 'مصروف';
         tr.innerHTML = `
           <td>${expense.date}</td>
           <td>${expense.person}</td>
@@ -790,7 +800,7 @@
       const isAdmin = state.currentUser.admin;
       el('sessionLabel').textContent = `الدخول: ${state.currentUser.name}`;
       el('pageTitle').textContent = isAdmin ? 'لوحة مصاريف العائلة' : `مصاريف ${state.currentUser.name}`;
-      el('pageSubtitle').textContent = isAdmin ? 'الأب يستطيع رؤية وإدارة رواتب ومصاريف الجميع.' : 'يمكنك تسجيل راتبك ومصاريفك فقط.';
+      el('pageSubtitle').textContent = isAdmin ? 'الأب يستطيع رؤية وإدارة رواتب ومصاريف ومديونية الجميع.' : 'يمكنك تسجيل راتبك ومصاريفك ومديونيتك فقط.';
       el('settingsPanel').style.display = isAdmin ? 'block' : 'none';
       el('expensePerson').disabled = !isAdmin;
       el('filterPerson').disabled = !isAdmin;
@@ -865,7 +875,7 @@
     function exportCsv() {
       const rows = visibleExpenses();
       const header = ['التاريخ', 'الاسم', 'النوع', 'المبلغ', 'التصنيف', 'ملاحظة'];
-      const csvRows = [header, ...rows.map((item) => [item.date, item.person, item.type === 'salary' ? 'راتب' : 'مصروف', item.amount, item.category, item.note])];
+      const csvRows = [header, ...rows.map((item) => [item.date, item.person, item.type === 'salary' ? 'راتب' : item.type === 'debt' ? 'مديونية' : 'مصروف', item.amount, item.category, item.note])];
       const csv = '\uFEFF' + csvRows
         .map((row) => row.map((cell) => `"${String(cell ?? '').replace(/"/g, '""')}"`).join(','))
         .join('\n');
@@ -912,6 +922,8 @@
       el('expenseType').addEventListener('change', () => {
         if (el('expenseType').value === 'salary') {
           el('expenseCategory').value = 'راتب';
+        } else if (el('expenseType').value === 'debt') {
+          el('expenseCategory').value = 'مديونية';
         }
       });
       el('expenseRows').addEventListener('click', (event) => {
