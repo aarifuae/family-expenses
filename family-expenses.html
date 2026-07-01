@@ -438,7 +438,7 @@
 
             <div class="settings"></div>
 
-            <h2>إضافة مصروف أو مديونية</h2>
+            <h2>إضافة مصروف</h2>
             <form id="expenseForm">
               <div class="form-row">
                 <div class="field">
@@ -455,8 +455,6 @@
                   <label for="expenseType">نوع العملية</label>
                   <select id="expenseType">
                     <option value="expense">مصروف</option>
-                    <option value="debt">مديونية</option>
-                    <option value="debt_payment">سداد مديونية</option>
                   </select>
                 </div>
                 <div class="field">
@@ -467,17 +465,7 @@
               <div class="form-row">
                 <div class="field">
                   <label for="expenseCategory">التصنيف</label>
-                  <select id="expenseCategory">
-                    <option>مديونية</option>
-                    <option>سداد مديونية</option>
-                    <option>بيت</option>
-                    <option>أكل</option>
-                    <option>مواصلات</option>
-                    <option>مدرسة</option>
-                    <option>صحة</option>
-                    <option>ترفيه</option>
-                    <option>أخرى</option>
-                  </select>
+                  <select id="expenseCategory"></select>
                 </div>
                 <div class="field">
                   <label for="customCategory">تصنيف جديد</label>
@@ -636,7 +624,8 @@
       { name: 'المها', role: 'عضو' }
     ];
 
-    const CATEGORIES = ['مديونية', 'سداد مديونية', 'بيت', 'أكل', 'مواصلات', 'مدرسة', 'صحة', 'ترفيه', 'أخرى'];
+    const CATEGORIES = [];
+    const REMOVED_DEFAULT_CATEGORIES = ['مديونية', 'سداد مديونية', 'بيت', 'أكل', 'مواصلات', 'مدرسة', 'صحة', 'ترفيه', 'أخرى'];
     const STORAGE_KEY = 'family-expenses-v1';
     const GOALS_KEY = 'family-expenses-goals-v1';
     const CATEGORIES_KEY = 'family-expenses-categories-v1';
@@ -750,8 +739,8 @@
     }
 
     function mergeCategories(extra = []) {
-      return [...new Set([...CATEGORIES, ...extra, ...state.expenses.map((item) => item.category).filter(Boolean)])]
-        .filter((category) => category !== 'راتب');
+      return [...new Set([...CATEGORIES, ...extra])]
+        .filter((category) => category && category !== 'راتب' && !REMOVED_DEFAULT_CATEGORIES.includes(category));
     }
 
     function addCategory(category) {
@@ -784,12 +773,15 @@
     }
 
     function renderCategoryOptions() {
-      const selectedExpense = el('expenseCategory').value || 'بيت';
+      const selectedExpense = el('expenseCategory').value;
       const selectedFilter = el('filterCategory').value || 'all';
       el('expenseCategory').innerHTML = '';
       el('filterCategory').innerHTML = '';
       el('filterCategory').add(new Option('كل التصنيفات', 'all'));
       state.categories = mergeCategories(state.categories);
+      if (!state.categories.length) {
+        el('expenseCategory').add(new Option('اكتب تصنيف جديد', ''));
+      }
       state.categories.forEach((cat) => {
         if (cat === 'راتب') return;
         el('expenseCategory').add(new Option(cat, cat));
@@ -1111,13 +1103,20 @@
 
     async function addExpense(event) {
       event.preventDefault();
+      const customCategory = el('customCategory').value.trim();
+      const selectedCategory = el('expenseCategory').value;
+      const category = el('expenseType').value === 'salary' ? 'راتب' : addCategory(customCategory || selectedCategory);
+      if (el('expenseType').value !== 'salary' && !category) {
+        showNotice(el('formNotice'), 'اكتب التصنيف الجديد أولاً.');
+        return;
+      }
       const expense = {
         id: state.editingId || `${Date.now()}-${Math.random().toString(16).slice(2)}`,
         person: el('expensePerson').value,
         type: el('expenseType').value,
         date: el('expenseDate').value,
         amount: Number(el('expenseAmount').value),
-        category: el('expenseType').value === 'salary' ? 'راتب' : addCategory(el('customCategory').value || el('expenseCategory').value),
+        category,
         note: el('expenseNote').value.trim()
       };
       if (!state.currentUser.admin) {
@@ -1331,11 +1330,6 @@
       el('filterCategory').addEventListener('change', render);
       el('searchText').addEventListener('input', render);
       el('expenseType').addEventListener('change', () => {
-        if (el('expenseType').value === 'debt') {
-          el('expenseCategory').value = 'مديونية';
-        } else if (el('expenseType').value === 'debt_payment') {
-          el('expenseCategory').value = 'سداد مديونية';
-        }
         updateCategoryMode();
       });
       el('expenseRows').addEventListener('click', (event) => {

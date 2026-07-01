@@ -20,16 +20,27 @@ const users = [
   { name: 'المها', role: 'عضو' }
 ];
 
-const defaultCategories = ['مديونية', 'سداد مديونية', 'بيت', 'أكل', 'مواصلات', 'مدرسة', 'صحة', 'ترفيه', 'أخرى'];
+const defaultCategories = [];
+const removedDefaultCategories = ['مديونية', 'سداد مديونية', 'بيت', 'أكل', 'مواصلات', 'مدرسة', 'صحة', 'ترفيه', 'أخرى'];
 
 function defaultData() {
   return {
     passwords: Object.fromEntries(users.map((user) => [user.name, '1234'])),
-    goals: Object.fromEntries(users.map((user) => [user.name, 0])),
+    goals: Object.fromEntries(users.map((user) => [user.name, { target: 0, saved: 0 }])),
     categories: [...defaultCategories],
     debts: [],
     expenses: []
   };
+}
+
+function normalizeGoal(goal) {
+  if (goal && typeof goal === 'object') {
+    return {
+      target: Number(goal.target || goal.amount || 0),
+      saved: Number(goal.saved || 0)
+    };
+  }
+  return { target: Number(goal || 0), saved: 0 };
 }
 
 function normalizeData(data) {
@@ -40,15 +51,14 @@ function normalizeData(data) {
   }
   data.goals = data.goals || {};
   for (const user of users) {
-    data.goals[user.name] = Number(data.goals[user.name] || 0);
+    data.goals[user.name] = normalizeGoal(data.goals[user.name]);
   }
   data.expenses = Array.isArray(data.expenses) ? data.expenses : [];
   data.debts = Array.isArray(data.debts) ? data.debts : [];
   data.categories = [...new Set([
     ...defaultCategories,
-    ...(Array.isArray(data.categories) ? data.categories : []),
-    ...data.expenses.map((expense) => expense.category).filter(Boolean)
-  ])].filter((category) => category !== 'راتب');
+    ...(Array.isArray(data.categories) ? data.categories : [])
+  ])].filter((category) => category && category !== 'راتب' && !removedDefaultCategories.includes(category));
   delete data.password;
   return data;
 }
@@ -148,7 +158,7 @@ const server = http.createServer(async (req, res) => {
       if (!actor) return sendError(res, 401, 'غير مصرح.');
       const goals = actor.admin
         ? data.goals
-        : { [actor.name]: data.goals[actor.name] || 0 };
+        : { [actor.name]: data.goals[actor.name] || normalizeGoal(0) };
       return sendJson(res, 200, { expenses: visibleExpenses(data, actor), debts: visibleDebts(data, actor), goals, categories: data.categories });
     }
 
@@ -167,10 +177,11 @@ const server = http.createServer(async (req, res) => {
       const person = actor.admin ? expense.person : actor.name;
       if (!getUser(person)) return sendError(res, 400, 'الاسم غير صحيح.');
 
-      const type = ['salary', 'expense', 'debt', 'debt_payment'].includes(expense.type) ? expense.type : 'expense';
+      const type = expense.type === 'salary' ? 'salary' : 'expense';
       const category = type === 'salary'
         ? 'راتب'
-        : String(expense.category || 'أخرى').trim().slice(0, 60) || 'أخرى';
+        : String(expense.category || '').trim().slice(0, 60);
+      if (type !== 'salary' && !category) return sendError(res, 400, 'اكتب التصنيف.');
       if (type !== 'salary' && !data.categories.includes(category)) data.categories.push(category);
 
       data.expenses.push({
@@ -185,7 +196,7 @@ const server = http.createServer(async (req, res) => {
       writeData(data);
       const goals = actor.admin
         ? data.goals
-        : { [actor.name]: data.goals[actor.name] || 0 };
+        : { [actor.name]: data.goals[actor.name] || normalizeGoal(0) };
       return sendJson(res, 200, { expenses: visibleExpenses(data, actor), debts: visibleDebts(data, actor), goals, categories: data.categories });
     }
 
@@ -209,10 +220,11 @@ const server = http.createServer(async (req, res) => {
       const person = actor.admin ? expense.person : actor.name;
       if (!getUser(person)) return sendError(res, 400, 'الاسم غير صحيح.');
 
-      const type = ['salary', 'expense', 'debt', 'debt_payment'].includes(expense.type) ? expense.type : 'expense';
+      const type = expense.type === 'salary' ? 'salary' : 'expense';
       const category = type === 'salary'
         ? 'راتب'
-        : String(expense.category || 'أخرى').trim().slice(0, 60) || 'أخرى';
+        : String(expense.category || '').trim().slice(0, 60);
+      if (type !== 'salary' && !category) return sendError(res, 400, 'اكتب التصنيف.');
       if (type !== 'salary' && !data.categories.includes(category)) data.categories.push(category);
 
       data.expenses = data.expenses.map((item) => item.id === id ? {
@@ -227,7 +239,7 @@ const server = http.createServer(async (req, res) => {
       writeData(data);
       const goals = actor.admin
         ? data.goals
-        : { [actor.name]: data.goals[actor.name] || 0 };
+        : { [actor.name]: data.goals[actor.name] || normalizeGoal(0) };
       return sendJson(res, 200, { expenses: visibleExpenses(data, actor), debts: visibleDebts(data, actor), goals, categories: data.categories });
     }
 
@@ -246,7 +258,7 @@ const server = http.createServer(async (req, res) => {
       writeData(data);
       const goals = actor.admin
         ? data.goals
-        : { [actor.name]: data.goals[actor.name] || 0 };
+        : { [actor.name]: data.goals[actor.name] || normalizeGoal(0) };
       return sendJson(res, 200, { expenses: visibleExpenses(data, actor), debts: visibleDebts(data, actor), goals, categories: data.categories });
     }
 
@@ -338,13 +350,14 @@ const server = http.createServer(async (req, res) => {
       const requestedTarget = actor.admin ? body.targetUser : actor.name;
       const target = getUser(requestedTarget);
       const amount = Number(body.amount);
+      const saved = Number(body.saved || 0);
       if (!target) return sendError(res, 400, 'الاسم غير صحيح.');
-      if (!Number.isFinite(amount) || amount < 0) return sendError(res, 400, 'مبلغ الهدف غير صحيح.');
-      data.goals[target.name] = amount;
+      if (!Number.isFinite(amount) || amount < 0 || !Number.isFinite(saved) || saved < 0) return sendError(res, 400, 'مبلغ الهدف غير صحيح.');
+      data.goals[target.name] = { target: amount, saved };
       writeData(data);
       const goals = actor.admin
         ? data.goals
-        : { [actor.name]: data.goals[actor.name] || 0 };
+        : { [actor.name]: data.goals[actor.name] || normalizeGoal(0) };
       return sendJson(res, 200, { goals });
     }
 
