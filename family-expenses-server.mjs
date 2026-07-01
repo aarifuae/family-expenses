@@ -366,10 +366,19 @@ const server = http.createServer(async (req, res) => {
       const data = readData();
       const actor = authenticate(data, body.user, body.password);
       if (!actor?.admin) return sendError(res, 403, 'الأب فقط يستطيع حذف البيانات.');
-      data.expenses = [];
-      data.debts = [];
+      const target = body.targetUser && body.targetUser !== 'all' ? getUser(body.targetUser) : null;
+      if (body.targetUser && body.targetUser !== 'all' && !target) return sendError(res, 400, 'الاسم غير صحيح.');
+      if (target) {
+        data.expenses = data.expenses.filter((item) => item.person !== target.name);
+        data.debts = data.debts.filter((item) => item.person !== target.name);
+        data.goals[target.name] = normalizeGoal(0);
+      } else {
+        data.expenses = [];
+        data.debts = [];
+        data.goals = Object.fromEntries(users.map((user) => [user.name, normalizeGoal(0)]));
+      }
       writeData(data);
-      return sendJson(res, 200, { expenses: [], debts: [] });
+      return sendJson(res, 200, { expenses: visibleExpenses(data, actor), debts: visibleDebts(data, actor), goals: data.goals, categories: data.categories });
     }
 
     sendError(res, 404, 'Not found');
