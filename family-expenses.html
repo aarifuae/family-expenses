@@ -207,6 +207,12 @@
       justify-content: flex-end;
     }
 
+    .summary-heading {
+      margin: 18px 0 8px;
+      color: var(--brand-dark);
+      font-size: 16px;
+    }
+
     .grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -380,14 +386,28 @@
           </div>
         </div>
 
-        <section class="grid" aria-label="ملخص المصاريف">
-          <div class="stat"><span class="muted">إجمالي الرواتب</span><strong id="totalAll">0</strong></div>
+        <h2 class="summary-heading">الراتب والمصاريف</h2>
+        <section class="grid" aria-label="ملخص الراتب والمصاريف">
+          <div class="stat"><span class="muted">إجمالي الراتب</span><strong id="totalAll">0</strong></div>
           <div class="stat"><span class="muted">إجمالي المصاريف</span><strong id="totalSelected">0</strong></div>
-          <div class="stat"><span class="muted">كامل المديونية</span><strong id="totalDebt">0</strong></div>
+          <div class="stat"><span class="muted">الباقي من الراتب</span><strong id="balanceAmount">0</strong></div>
+        </section>
+
+        <h2 class="summary-heading">المديونية</h2>
+        <div class="field" style="max-width:360px; margin-bottom:12px">
+          <label for="debtSummarySelect">اختيار المديونية</label>
+          <select id="debtSummarySelect"></select>
+        </div>
+        <section class="grid" aria-label="ملخص المديونية">
+          <div class="stat"><span class="muted">المديونية</span><strong id="totalDebt">0</strong></div>
           <div class="stat"><span class="muted">المسدد من المديونية</span><strong id="paidDebt">0</strong></div>
           <div class="stat"><span class="muted">الباقي من المديونية</span><strong id="remainingDebt">0</strong></div>
-          <div class="stat"><span class="muted">الرصيد الحالي</span><strong id="balanceAmount">0</strong></div>
+        </section>
+
+        <h2 class="summary-heading">الأهداف</h2>
+        <section class="grid" aria-label="ملخص الأهداف">
           <div class="stat"><span class="muted">الهدف</span><strong id="goalAmount">0</strong></div>
+          <div class="stat"><span class="muted">المبلغ المحفوظ للهدف</span><strong id="goalCurrent">0</strong></div>
           <div class="stat"><span class="muted">الباقي للهدف</span><strong id="goalRemaining">0</strong></div>
         </section>
 
@@ -495,6 +515,10 @@
               <div class="field">
                 <label for="goalAmountInput">مبلغ الهدف</label>
                 <input id="goalAmountInput" type="number" min="0" step="0.01" placeholder="مثال: 20000">
+              </div>
+              <div class="field">
+                <label for="goalSavedInput">المبلغ المحفوظ للهدف</label>
+                <input id="goalSavedInput" type="number" min="0" step="0.01" placeholder="مثال: 5000">
               </div>
               <button class="btn secondary" id="saveGoalBtn" type="button" style="width:100%">حفظ الهدف</button>
               <div id="goalNotice" class="notice"></div>
@@ -629,6 +653,7 @@
       goals: {},
       categories: [...CATEGORIES],
       editingId: null,
+      selectedDebtId: '',
       authPassword: ''
     };
 
@@ -637,6 +662,26 @@
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
     });
+
+    function normalizeGoal(goal) {
+      if (goal && typeof goal === 'object') {
+        return {
+          target: Number(goal.target || goal.amount || 0),
+          saved: Number(goal.saved || 0)
+        };
+      }
+      return { target: Number(goal || 0), saved: 0 };
+    }
+
+    function goalFor(name) {
+      return normalizeGoal(state.goals[name]);
+    }
+
+    function setGoalInputs(name) {
+      const goal = goalFor(name);
+      el('goalAmountInput').value = goal.target || '';
+      el('goalSavedInput').value = goal.saved || '';
+    }
 
     function getPasswords() {
       try {
@@ -828,8 +873,8 @@
         const paidDebt = state.expenses
           .filter((expense) => expense.person === user.name && expense.type === 'debt_payment')
           .reduce((sum, expense) => sum + Number(expense.amount), 0);
-        const total = totalSalary - totalExpense - Math.max(totalDebt - paidDebt, 0);
-        const goal = Number(state.goals[user.name] || 0);
+        const total = totalSalary - totalExpense;
+        const goal = goalFor(user.name).target;
         const goalText = goal ? ` / هدف ${money(goal)}` : '';
         const button = document.createElement('button');
         button.className = `user-tab ${state.selectedPerson === user.name ? 'active' : ''}`;
@@ -837,6 +882,7 @@
         button.innerHTML = `<span>${user.name}<br><small>${money(total)}${goalText}</small></span><span class="role-pill">${user.role}</span>`;
         button.addEventListener('click', () => {
           state.selectedPerson = user.name;
+          state.selectedDebtId = '';
           el('filterPerson').value = user.name;
           render();
         });
@@ -881,25 +927,28 @@
         if (!state.currentUser.admin && debt.person !== state.currentUser.name) return false;
         return state.selectedPerson === 'all' || debt.person === state.selectedPerson;
       });
-      const accountDebtRemaining = selectedDebtAccounts.reduce((sum, debt) => sum + Math.max(Number(debt.principal || 0) - Number(debt.paid || 0), 0), 0);
-      const accountDebtTotal = selectedDebtAccounts.reduce((sum, debt) => sum + Number(debt.principal || 0), 0);
-      const accountDebtPaid = selectedDebtAccounts.reduce((sum, debt) => sum + Number(debt.paid || 0), 0);
-      const fullDebt = totalDebt + accountDebtTotal;
-      const fullPaidDebt = paidDebt + accountDebtPaid;
-      const fullRemainingDebt = remainingDebt + accountDebtRemaining;
-      const balance = totalSalary - totalExpense - fullRemainingDebt;
-      const selectedPeople = state.selectedPerson === 'all'
-        ? (state.currentUser.admin ? USERS : [state.currentUser])
-        : USERS.filter((user) => user.name === state.selectedPerson);
-      const goal = selectedPeople.reduce((sum, user) => sum + Number(state.goals[user.name] || 0), 0);
-      const goalRemaining = Math.max(goal - balance, 0);
+      const activeDebt = selectedDebtAccounts.find((debt) => debt.id === state.selectedDebtId) || selectedDebtAccounts[0] || null;
+      state.selectedDebtId = activeDebt ? activeDebt.id : '';
+      const accountDebtRemaining = activeDebt ? Math.max(Number(activeDebt.principal || 0) - Number(activeDebt.paid || 0), 0) : 0;
+      const accountDebtTotal = activeDebt ? Number(activeDebt.principal || 0) : 0;
+      const accountDebtPaid = activeDebt ? Number(activeDebt.paid || 0) : 0;
+      const fullDebt = activeDebt ? accountDebtTotal : totalDebt;
+      const fullPaidDebt = activeDebt ? accountDebtPaid : paidDebt;
+      const fullRemainingDebt = activeDebt ? accountDebtRemaining : remainingDebt;
+      const salaryBalance = totalSalary - totalExpense;
+      const goalPerson = state.currentUser.admin ? el('goalUser').value : state.currentUser.name;
+      const savedGoal = goalPerson ? goalFor(goalPerson) : { target: 0, saved: 0 };
+      const goal = savedGoal.target;
+      const goalCurrent = savedGoal.saved;
+      const goalRemaining = goal > 0 ? Math.max(goal - goalCurrent, 0) : 0;
       el('totalAll').textContent = money(totalSalary);
       el('totalSelected').textContent = money(totalExpense);
       el('totalDebt').textContent = money(fullDebt);
       el('paidDebt').textContent = money(fullPaidDebt);
       el('remainingDebt').textContent = money(fullRemainingDebt);
-      el('balanceAmount').textContent = money(balance);
+      el('balanceAmount').textContent = money(salaryBalance);
       el('goalAmount').textContent = money(goal);
+      el('goalCurrent').textContent = money(goalCurrent);
       el('goalRemaining').textContent = money(goalRemaining);
     }
 
@@ -948,9 +997,13 @@
       } else if (el('filterPerson').value !== state.selectedPerson) {
         state.selectedPerson = el('filterPerson').value;
       }
+      if (isAdmin && state.selectedPerson !== 'all') {
+        el('goalUser').value = state.selectedPerson;
+      }
       renderUsers();
       renderCategoryOptions();
-      el('goalAmountInput').value = state.goals[el('goalUser').value] || '';
+      setGoalInputs(el('goalUser').value);
+      renderDebtSummarySelect();
       renderStats();
       renderTable();
       renderDebts();
@@ -961,6 +1014,26 @@
         .filter((debt) => state.currentUser.admin || debt.person === state.currentUser.name)
         .filter((debt) => state.selectedPerson === 'all' || debt.person === state.selectedPerson)
         .sort((a, b) => a.person.localeCompare(b.person, 'ar') || a.title.localeCompare(b.title, 'ar'));
+    }
+
+    function renderDebtSummarySelect() {
+      const select = el('debtSummarySelect');
+      const rows = visibleDebts();
+      const previous = state.selectedDebtId || select.value;
+      select.innerHTML = '';
+      if (!rows.length) {
+        select.add(new Option('لا توجد مديونية', ''));
+        select.disabled = true;
+        state.selectedDebtId = '';
+        return;
+      }
+      select.disabled = false;
+      rows.forEach((debt) => {
+        const kind = debt.kind === 'main' ? 'رئيسي' : 'فرعي';
+        select.add(new Option(`${debt.person} - ${debt.title} (${kind})`, debt.id));
+      });
+      state.selectedDebtId = rows.some((debt) => debt.id === previous) ? previous : rows[0].id;
+      select.value = state.selectedDebtId;
     }
 
     function renderDebts() {
@@ -1252,6 +1325,7 @@
       el('exportBtn').addEventListener('click', exportCsv);
       el('filterPerson').addEventListener('change', () => {
         state.selectedPerson = el('filterPerson').value;
+        state.selectedDebtId = '';
         render();
       });
       el('filterCategory').addEventListener('change', render);
@@ -1315,13 +1389,19 @@
         }
       });
       el('goalUser').addEventListener('change', () => {
-        el('goalAmountInput').value = state.goals[el('goalUser').value] || '';
+        setGoalInputs(el('goalUser').value);
+        renderStats();
+      });
+      el('debtSummarySelect').addEventListener('change', () => {
+        state.selectedDebtId = el('debtSummarySelect').value;
+        renderStats();
       });
       el('saveGoalBtn').addEventListener('click', async () => {
         const targetUser = state.currentUser.admin ? el('goalUser').value : state.currentUser.name;
         const amount = Number(el('goalAmountInput').value || 0);
-        if (!Number.isFinite(amount) || amount < 0) {
-          showNotice(el('goalNotice'), 'اكتب مبلغ هدف صحيح.');
+        const saved = Number(el('goalSavedInput').value || 0);
+        if (!Number.isFinite(amount) || amount < 0 || !Number.isFinite(saved) || saved < 0) {
+          showNotice(el('goalNotice'), 'اكتب مبلغ هدف ومبلغ محفوظ صحيح.');
           return;
         }
         if (SERVER_MODE) {
@@ -1331,12 +1411,13 @@
               user: state.currentUser.name,
               password: state.authPassword,
               targetUser,
-              amount
+              amount,
+              saved
             })
           });
           state.goals = payload.goals || {};
         } else {
-          state.goals[targetUser] = amount;
+          state.goals[targetUser] = { target: amount, saved };
           saveExpenses();
         }
         showNotice(el('goalNotice'), 'تم حفظ الهدف.');
