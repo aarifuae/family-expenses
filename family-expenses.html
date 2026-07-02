@@ -266,7 +266,7 @@
     table {
       width: 100%;
       border-collapse: collapse;
-      overflow-wrap: anywhere;
+      table-layout: auto;
     }
 
     th, td {
@@ -275,6 +275,8 @@
       text-align: right;
       vertical-align: top;
       font-size: 14px;
+      word-break: normal;
+      overflow-wrap: normal;
     }
 
     th {
@@ -331,7 +333,54 @@
       .top-actions { justify-content: stretch; }
       .top-actions .btn { flex: 1; }
       .grid, .filters, .form-row, .user-list { grid-template-columns: 1fr; }
-      th:nth-child(5), td:nth-child(5) { display: none; }
+      .table-wrap {
+        max-height: none;
+        overflow: visible;
+        border: 0;
+      }
+      table, thead, tbody, tr, th, td {
+        display: block;
+      }
+      thead {
+        display: none;
+      }
+      tbody {
+        display: grid;
+        gap: 12px;
+      }
+      tr {
+        border: 1px solid #ece7df;
+        border-radius: 8px;
+        background: #fff;
+        padding: 10px;
+      }
+      td {
+        border-bottom: 0;
+        padding: 8px 0;
+        display: grid;
+        grid-template-columns: 92px 1fr;
+        gap: 12px;
+        align-items: start;
+        font-size: 15px;
+      }
+      td::before {
+        content: attr(data-label);
+        color: #667085;
+        font-size: 13px;
+        font-weight: 700;
+      }
+      td:last-child {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        padding-top: 10px;
+      }
+      td:last-child::before {
+        width: 100%;
+      }
+      td .btn.small {
+        flex: 1 1 120px;
+      }
       h1 { font-size: 25px; }
     }
   </style>
@@ -953,13 +1002,13 @@
         const disabled = canEdit(expense) ? '' : 'disabled';
         const type = expense.type === 'salary' ? 'راتب' : expense.type === 'debt' ? 'مديونية' : expense.type === 'debt_payment' ? 'سداد مديونية' : 'مصروف';
         tr.innerHTML = `
-          <td>${expense.date}</td>
-          <td>${expense.person}</td>
-          <td>${type}</td>
-          <td>${money(expense.amount)}</td>
-          <td>${expense.type === 'salary' ? '-' : expense.category}</td>
-          <td>${expense.note || '-'}</td>
-          <td>
+          <td data-label="التاريخ">${expense.date}</td>
+          <td data-label="الاسم">${expense.person}</td>
+          <td data-label="النوع">${type}</td>
+          <td data-label="المبلغ">${money(expense.amount)}</td>
+          <td data-label="التصنيف">${expense.type === 'salary' ? '-' : expense.category}</td>
+          <td data-label="ملاحظة">${expense.note || '-'}</td>
+          <td data-label="إجراء">
             <button class="btn secondary small" data-edit-id="${expense.id}" ${disabled}>تعديل</button>
             <button class="btn danger small" data-delete-id="${expense.id}" ${disabled}>حذف</button>
           </td>
@@ -1037,15 +1086,15 @@
         const disabled = canEdit({ person: debt.person }) ? '' : 'disabled';
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td>${debt.person}</td>
-          <td>${debt.title}</td>
-          <td>${debt.kind === 'main' ? 'رئيسي' : 'فرعي'}</td>
-          <td>${money(debt.principal)}</td>
-          <td>${money(debt.installment)}</td>
-          <td>${money(debt.paid)}</td>
-          <td>${money(remaining)}</td>
-          <td>${Number(debt.postponed || 0).toLocaleString('ar-SA')}</td>
-          <td>
+          <td data-label="الاسم">${debt.person}</td>
+          <td data-label="الدين">${debt.title}</td>
+          <td data-label="النوع">${debt.kind === 'main' ? 'رئيسي' : 'فرعي'}</td>
+          <td data-label="كامل الدين">${money(debt.principal)}</td>
+          <td data-label="القسط">${money(debt.installment)}</td>
+          <td data-label="المسدد">${money(debt.paid)}</td>
+          <td data-label="الباقي">${money(remaining)}</td>
+          <td data-label="تأجيل">${Number(debt.postponed || 0).toLocaleString('ar-SA')}</td>
+          <td data-label="إجراء">
             <button class="btn secondary small" data-debt-pay-id="${debt.id}" ${disabled}>سداد قسط</button>
             <button class="btn secondary small" data-debt-postpone-id="${debt.id}" ${disabled}>تأجيل</button>
             <button class="btn danger small" data-debt-delete-id="${debt.id}" ${disabled}>حذف</button>
